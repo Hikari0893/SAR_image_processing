@@ -11,12 +11,33 @@ picture = np.load('converted_image.npy')
 complex_image = picture[:, :, 0] + 1j * picture[:, :, 1]
 del picture
 
+
+# Apply fft transform
+spectrum_az    = np.fft.fftshift(np.fft.fft(complex_image,axis=0))
+del complex_image
+"""
+#spectrum_range = np.fft.fftshift(np.fft.fft(complex_image,axis=1))
+images_cols = complex_image.shape[0]
+images_rows = complex_image.shape[1]
+del complex_image
+
+
+# 1. Genera las ventanas de Hamming 1D
+hamming_az    = 1/(np.hamming(images_cols))     #azimuth
+#hamming_range = 1/(np.hamming(images_rows))  #range
+
+dehamming_az  = spectrum_az*hamming_az[:, np.newaxis]
+
+#dehamming_sr  = spectrum_range@hamming_range
+"""
+
+
 # Usar el módulo (magnitud) de la imagen compleja
-magnitude_image = complex_image/np.max(np.abs(complex_image))
+#magnitude_image = complex_image/np.max(np.abs(complex_image))
 #print(magnitude_image)
 
 # Create the heatmap
-plt.imshow(np.log(np.abs(complex_image)), cmap='viridis')  
+plt.imshow(np.log(np.abs(spectrum_az)), cmap='viridis')  
 # 'viridis' is just one of many available colormaps
 plt.colorbar()  # Add a colorbar to the plot to show the value-to-color mapping
 
@@ -27,13 +48,20 @@ plt.ylabel('Y-axis')
 
 # Show the heatmap
 plt.show()
+print("dummy")
 
 """
+# Flatten the 2D array to a 1D array
+flattened_data = np.abs(complex_image).flatten()
+
+# Create a histogram for the entire data
+plt.hist(flattened_data, bins=1000, edgecolor='black') 
+plt.show()
 plt.figure()
 plt.imshow(np.abs(magnitude_image))
 plt.show()
 """
-
+"""
 # 1. Preparación de la Imagen: Escalado a [0, 1]
 scaled_image = (magnitude_image - np.min(magnitude_image)) / (np.max(magnitude_image) - np.min(magnitude_image))
 #print("scaled_image")
@@ -45,6 +73,7 @@ plt.imshow(scaled_image, cmap='gray')  # Usar colormap "gray" para imágenes SAR
 plt.axis('off')  # Ocultar los ejes
 plt.savefig('original_image.png', bbox_inches='tight', pad_inches=0)
 plt.show()
+"""
 
 #----------------------------------------------------------------------------------------------------------------------------
 # Reconstruir la versión compleja de la imagen a partir de sus partes real e imaginaria
