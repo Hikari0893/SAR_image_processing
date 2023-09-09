@@ -1,6 +1,8 @@
 import numpy as np
 import matplotlib.pyplot as plt
+from scipy.fft import fft,fftshift, ifft, ifftshift, fft2
 
+SLICE_NUMBER = 500
 
 # Load SAR image
 picture = np.load('converted_image.npy')
@@ -30,8 +32,10 @@ images_cols_az = complex_image.shape[0]
 images_rows_range = complex_image.shape[1]
 spectrum_az  = np.zeros_like(complex_image)
 
-spectrum_az0 = np.fft.fftshift(np.fft.fft(complex_image[:,:7000]))
-spf0 = np.copy(spectrum_az0)
+
+spectrum_az0 =fft(complex_image[:,:SLICE_NUMBER])
+spf0 = fftshift(spectrum_az0)
+M = spf0.shape[0] # window size
 del spectrum_az0
 
 """spectrum_az1 = np.fft.fftshift(np.fft.fft(complex_image[:,7001:14000]))
@@ -62,7 +66,7 @@ f_range = 1.50000000000000000e8
 #---------------------------------------------------------
 
 hamming_windows = alpha -(1 - alpha)*np.cos(2*np.pi*f_az)"""
-hamming_az    = 1/(np.hamming(images_cols_az))     #azimuth
+hamming_az    = 1/(np.hamming(M))     #azimuth
 #hamming_range = 1/(np.hamming(images_rows))  #range
 
 dehamming_az  = spf0*hamming_az[:, np.newaxis]
@@ -129,7 +133,7 @@ alpha = 6.00000023841857910e-1
 #plt.savefig('Az.png')
 #plt.show()
 """
-#----------------------------------------------------
+#----------------------------------------------------"""
 
 def generate_sublooks(spectrum, num_sublooks):
     #tamaño del sublook en el eje azimut
@@ -144,16 +148,17 @@ def generate_sublooks(spectrum, num_sublooks):
         sublook_spectrum[i*sublook_size:(i+1)*sublook_size] = spectrum[i*sublook_size:(i+1)*sublook_size]
         
         # Transformar el sublook al dominio del espacio
-        sublook_space = np.fft.ifft2(np.fft.ifftshift(sublook_spectrum))
+        sublook_space0 = ifftshift(sublook_spectrum)
+        sublook_space = fft2(sublook_space0)
         sublooks.append(sublook_space)
     
     return sublooks
     del spectrum
-num_sublooks = 2  # Definir el número de sublooks que desea
+num_sublooks = 3  # Definir el número de sublooks que desea
 sublooks = generate_sublooks(dehamming_az, num_sublooks)
-plt.plot(np.real(hamming_az))
+"""plt.plot(np.real(hamming_az))
 plt.savefig('espectro_az.png')
-plt.show()
+plt.show()"""
 
 #Visualizar los sublooks
 fig, axs = plt.subplots(1, num_sublooks, figsize=(15, 5))
@@ -164,4 +169,4 @@ for i, ax in enumerate(axs):
 
 plt.tight_layout()
 plt.savefig('image.png')
-plt.show()"""
+plt.show()
