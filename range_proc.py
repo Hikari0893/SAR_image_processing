@@ -1,5 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
+from hamming_window import hamming_window
 
 # Given loading code
 LOWER_LIM = 4500
@@ -12,7 +13,7 @@ f_sar = np.fft.fft(complex_image, axis=0)  # FFT along rows for range processing
 
 # 2. Apply the inverse of the Hamming function
 N = complex_image.shape[0]  # rows of the image for range processing
-inverse_hamming = 1 / np.hamming(N)
+inverse_hamming = 1 / hamming_window(N)
 
 # Apply the filter to each row
 for row in range(f_sar.shape[1]):
@@ -24,9 +25,9 @@ sections = [f_sar[:length, :], f_sar[length:2*length, :], f_sar[2*length:, :]]
 
 # 4. Apply the Hamming function to each frequency section
 for i in range(3):
-    hamming_window = np.hamming(sections[i].shape[0])
+    hamming_win = hamming_window(sections[i].shape[0])
     for row in range(sections[i].shape[1]):
-        sections[i][:, row] *= hamming_window
+        sections[i][:, row] *= hamming_win
 
 # 5. Apply the inverse FFT to each section
 sublooks = [np.fft.ifft(sect, axis=0) for sect in sections]  # IFFT along rows for range processing
