@@ -5,17 +5,18 @@
       "m":-1.429329123112601,
       "MODEL" : "Autoencoder_Wilson_Ver1",
       "ARCHIVE": " Jarvis",
-      "CKPT": "/home/tonix/Documents/Dayana/mis_checkpoints/WilsonVer11_Net_co_log_likelihood_leaky_relu_10_20.ckpt",
-      "INPUT_FOLDER": "/home/tonix/Documents/Dayana/Dataset/GeneralA",
+      "CKPT": "./mis_checkpoints/WilsonVer1_Net_mse_leaky_relu_32_13.ckpt",
+      "INPUT_FOLDER": "../data/patches/GeneralA",
       "FUNCTION": "leaky_relu",
-      "REFERENCE_FOLDER": "/home/tonix/Documents/Dayana/Dataset/GeneralB",
-      "SELECT": "co_log_likelihood",
+      "REFERENCE_FOLDER": "../data/patches/GeneralB",
+      "SELECT": "mse",
       "learning_rate": 0.005,
       "WEIGHT_DECAY": 0.0,
       "batch_size": 10,
-      "epochs": 85, 
-      "ONLYTEST" :false, 
-      "NUMWORKERS": 16
+      "epochs": 13,
+      "ONLYTEST" :true,
+      "NUMWORKERS": 16,
+      "training_data_percentage": 0.3
     }
   }
   

@@ -14,8 +14,8 @@ def data_plot(im, threshold):
     return im
 
 # Loading image
-picture = np.load('/home/tonix/Documents/Dayana/SAR_CNN_Denoising/slc_065.npy')
-
+# picture = np.load('/home/tonix/Documents/Dayana/SAR_CNN_Denoising/slc_065.npy')
+picture = np.load('../data/converted_image.npy')
 
 # Reconstruct the complex image from its real and imaginary parts.
 complex_image = picture[:, :, 0] + 1j * picture[: ,: , 1]

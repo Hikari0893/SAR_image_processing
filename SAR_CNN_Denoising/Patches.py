@@ -4,10 +4,10 @@ import sys
 import matplotlib.pyplot as plt
 import glob
 
-main_path = os.path.dirname(os.path.abspath(__file__))[:-4] # Dayana/Denoiser_CNN/
-sys.path.insert(0, main_path+"patches_folder")
-sys.path.insert(0, main_path+"Data")
-sys.path.insert(0, main_path+"Preprocessing__")
+# main_path = os.path.dirname(os.path.abspath(__file__)) # Dayana/Denoiser_CNN/
+# sys.path.insert(0, main_path+"patches_folder")
+# sys.path.insert(0, main_path+"Data")
+# sys.path.insert(0, main_path+"Preprocessing__")
 
 def load_sar_images(filelist, num_channels=2):
     """
@@ -96,19 +96,14 @@ def visualize_patches(folder, num_patches=5):
         plt.title(f'Patch {i}')
     plt.show()
 
-
-# Change the current directory to the directory of interest
-os.chdir('//')
-
 pattern = 'sublookA*'
-A_files = sorted(glob.glob(pattern))
-
+A_files = sorted(glob.glob('../SAR_CNN_Denoising/'+pattern))
 pattern = 'sublookB*'
-B_files = sorted(glob.glob(pattern))
+B_files = sorted(glob.glob('../SAR_CNN_Denoising/'+pattern))
 
 Both    = [A_files,B_files]
 
-output_base_folder = 'Dataset_centered'
+output_base_folder = '../data/patches'
 stride = 64
 test(Both, stride, output_base_folder)
 

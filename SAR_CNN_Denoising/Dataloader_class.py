@@ -19,7 +19,7 @@ sys.path.insert(0, main_path+"Data")
 sys.path.insert(0, main_path+"Preprocessing__")
 
 # Load global parameters from JSON file
-config_file = "//"  # Update with your JSON file path
+config_file = "../SAR_CNN_Denoising/CONFIGURATIONS.json"  # Update with your JSON file path
 
 with open(config_file, 'r') as json_file:
     global_parameters = json.load(json_file)
@@ -27,9 +27,13 @@ with open(config_file, 'r') as json_file:
 only_test = bool(global_parameters['global_parameters']['ONLYTEST'])
 
 class NPYDataset(Dataset):
-    def __init__(self, npy_folder):
+    def __init__(self, npy_folder, ratio=1):
         self.npy_folder = npy_folder
         self.filenames = sorted([f for f in os.listdir(npy_folder) if f.endswith('.npy')])
+        if ratio != 1:
+            num_files_to_select = int(ratio * len(self.filenames))
+            self.filenames = self.filenames[:num_files_to_select]
+
         print("sorted")
         
     def __len__(self): #to return the total number of samples in the dataset
@@ -72,9 +76,9 @@ class CombinedDataset(Dataset):
 # The "only_test" mode, only one DataLoader is created for the test set.
     
 class NPYDataLoader:
-    def __init__(self, batch_size, num_workers=8, folder_A =None, folder_B = None,only_test=only_test):
-        self.dataset_A = NPYDataset(folder_A)
-        self.dataset_B = NPYDataset(folder_B)
+    def __init__(self, batch_size, num_workers=8, folder_A =None, folder_B = None,only_test=only_test, ratio=1):
+        self.dataset_A = NPYDataset(folder_A, ratio)
+        self.dataset_B = NPYDataset(folder_B, ratio)
         if only_test == False:
                 
             training_ratio   = 0.6

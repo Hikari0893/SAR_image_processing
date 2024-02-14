@@ -6,9 +6,10 @@ from PIL import Image
 import os
 
 from Jarvis import *
+config_file = "../SAR_CNN_Denoising/CONFIGURATIONS.json"  # Update with your JSON file path
 
 # Load the global parameters from the JSON file
-with open('/path/', 'r') as json_file:
+with open(config_file, 'r') as json_file:
     global_parameters = json.load(json_file)
 
 # Access the global parameters
@@ -19,17 +20,21 @@ patch_folder_A = global_parameters['global_parameters']['INPUT_FOLDER']
 patch_folder_B = global_parameters['global_parameters']['REFERENCE_FOLDER']
 only_test = bool(global_parameters['global_parameters']['ONLYTEST'])
 num_workers = int(global_parameters['global_parameters']['NUMWORKERS'])
+ratio = 0.01
+
 # Instantiate the Model
 model = Autoencoder_Wilson_Ver1.load_from_checkpoint(checkpoint)  
 
-
-
-def process_patches_with_model(patch_folder, model, device, desc='patches SLA'):
+def process_patches_with_model(patch_folder, model, device, desc='patches SLA', ratio=ratio):
     processed_patches = []
 
     # Get all .npy files and sort them
     patch_files = [f for f in os.listdir(patch_folder) if f.endswith('.npy')]
     patch_files.sort(key=lambda x: int(os.path.splitext(x)[0].split('_')[-1]))  # Sorting by index
+
+    if ratio != 1:
+        num_files_to_select = int(ratio * len(patch_files))
+        patch_files = patch_files[:num_files_to_select]
 
     for filename in tqdm(patch_files, desc='Processing patches ...'):
         # Load patch and convert to PyTorch tensor
@@ -125,13 +130,13 @@ directory =str('/path/')
 # _________________________________________________________________________________________
 model.to(device)
 ORIGINAL_DIMS = (8244,9090)
-processed_patchesA = process_patches_with_model(patch_folder_A, model, device, desc='patches SLA')
+processed_patchesA = process_patches_with_model(patch_folder_A, model, device, desc='patches SLA', ratio=ratio)
 reconstructed_image_A = reconstruct_image_from_processed_patches(processed_patchesA, ORIGINAL_DIMS, desc='patches SLA')
 threshold = np.mean(reconstructed_image_A) + 3 * np.std(reconstructed_image_A)
 filename = '/path/'
 store_data_and_plot(reconstructed_image_A, threshold, filename)
 
-processed_patchesB = process_patches_with_model(patch_folder_B, model, device, desc='patches SLB')
+processed_patchesB = process_patches_with_model(patch_folder_B, model, device, desc='patches SLB', ratio=ratio)
 reconstructed_image_B = reconstruct_image_from_processed_patches(processed_patchesB, ORIGINAL_DIMS, desc='patches SLB')
 threshold = np.mean(reconstructed_image_B) + 3 * np.std(reconstructed_image_B)
 filename = '/path/'

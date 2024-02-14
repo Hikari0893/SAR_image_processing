@@ -22,11 +22,18 @@ from Dataloader_class import NPYDataLoader
 from Loss_function import *
 from Activation_functions import *
 
+os.environ[
+    'TF_CPP_MIN_LOG_LEVEL'] = '1'  # KEEP THIS BEFOR TF IMPORT and see tf.get_looger below, To disable informations, else '0' = DEBUG, '1' = INFO, '2' = WARNING, '3' = ERROR
+os.environ['CUDA_DEVICE_ORDER'] = 'PCI_BUS_ID'
+os.environ['CUDA_VISIBLE_DEVICES'] = '0'  # '1,3,4,5,6,7' for 12, '0','1','2','3' on 21
+torch.set_float32_matmul_precision('medium')
+
 main_path = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, main_path+"/../")
 
 # Load global parameters from JSON file
-config_file = "//"  # Update with your JSON file path
+config_file = "../SAR_CNN_Denoising/CONFIGURATIONS.json"  # Update with your JSON file path
+
 with open(config_file, 'r') as json_file:
     global_parameters = json.load(json_file)
 
@@ -43,7 +50,8 @@ only_test = bool(global_parameters['global_parameters']['ONLYTEST'])
 num_workers = int(global_parameters['global_parameters']['NUMWORKERS'])
 input_folder_A = global_parameters['global_parameters']['INPUT_FOLDER']
 input_folder_B = global_parameters['global_parameters']['REFERENCE_FOLDER']  
-ckpt_path = global_parameters['global_parameters']['CKPT'] 
+ckpt_path = global_parameters['global_parameters']['CKPT']
+ratio = global_parameters['global_parameters']['training_data_percentage']
 
 # Save checkpoints every n epochs
 checkpoint_callback = ModelCheckpoint(
@@ -123,8 +131,11 @@ class my_Unet(nn.Module):
     def forward (self, input):
         # Encoder
          # (32, 1, 256, 256)
-        encoder_0 =self.activation_funct(self.enc_conv0(input), function) # (Batch_size, 32, 256, 256)
-        skip = [encoder_0]
+
+        skip = [input]
+
+        encoder_0 = self.activation_funct(self.enc_conv0(input), function) # (Batch_size, 32, 256, 256)
+        skip.append(encoder_0)
         
         encoder_1 = self.activation_funct(self.enc_pool1(self.enc_bn1(self.enc_conv1(encoder_0))), function) # (Batch_size, 64, 128, 128)
         skip.append(encoder_1)
@@ -146,7 +157,7 @@ class my_Unet(nn.Module):
         encoder_6 = encoder_6.view(encoder_6.size(0), -1)
         fc1_ecoder = self.activation_funct(self.fc1_encoder(encoder_6), function)
         fc2_encoder = self.activation_funct(self.fc2_encoder(fc1_ecoder), function)
-        
+
 
         # ... continue forward pass through additional encoder layers
 
@@ -187,7 +198,7 @@ class Autoencoder_Wilson_Ver1 (pl.LightningModule,NPYDataLoader):
     def __init__(self, width = 256, hight = 256):
         pl.LightningModule.__init__(self)
         NPYDataLoader.__init__(self, batch_size=batch_size, num_workers=num_workers, 
-                               folder_A = input_folder_A, folder_B = input_folder_B, only_test=only_test)
+                               folder_A = input_folder_A, folder_B = input_folder_B, only_test=only_test, ratio=ratio)
         self.lr = learning_rate
         self.loss_f = Loss_funct()
         
@@ -206,7 +217,9 @@ class Autoencoder_Wilson_Ver1 (pl.LightningModule,NPYDataLoader):
         #remove this after dataset
         self.M  = M
         self.m  = m
-        normalize     = (torch.log(batch + 1e-7) - 2*m) /(2*(M - m))
+        # normalize     = (torch.log(batch + 1e-7) - 2*m) /(2*(M - m))
+        normalize     = (torch.log(batch + 1e-7) - m) /((M - m))
+
         return normalize
     
     def denormalize(self,normalized_data, Max, min):
@@ -217,17 +230,40 @@ class Autoencoder_Wilson_Ver1 (pl.LightningModule,NPYDataLoader):
     
     def common_step(self,batch):
         # This defines how to handle a training step
-        X_input, Y_reference = batch
-        X_input = self.normalize(X_input)
-        Y_reference = self.normalize(Y_reference)
-        Y_denormalized = Y_reference*(self.M-self.m) + self.m
-        
+
+        # If we define the input pair as (ak,bk) and output as rk
+        # These are the sublook(a,b) intensities
+        x, x_true = batch
+
+        # We normalize sublook_a
+        ak = self.normalize(x)
+        bk = self.normalize(x_true)
+
+
+        # import matplotlib.pyplot as plt
+        # import numpy as np
+        # Ynpy = ak[0,0,:,:].cpu().numpy()
+        # Xnpy = bk[0,0,:,:].cpu().numpy()
+        # a = 2
+
         #neuronal network
-        X_hat = self(X_input)
-        X_hdenormalized =  X_hat*(self.M-self.m) + self.m
-        
+        rk = self(ak)
+
+        # Denormalizing bk and rk, but still in log domain
+        log_bk = bk * (self.M - self.m) + self.m
+        log_rk = rk * (self.M - self.m) + self.m
+
+        # import matplotlib.pyplot as plt
+        # import numpy as np
+        #
+        # plt.imshow(np.sqrt(np.exp(log_rk[0, 0, :, :].cpu().numpy())), vmax=800)
+        # plt.figure()
+        # plt.imshow(np.sqrt(np.exp(log_bk[0, 0, :, :].cpu().numpy())), vmax=800)
+        # plt.show()
+        # a=2
+
         #loss function
-        loss_fuct = self.loss_f(X_hdenormalized, Y_denormalized, select = select) #The select parameter is to choose the loss function
+        loss_fuct = self.loss_f(log_rk, log_bk, select = select) #The select parameter is to choose the loss function
         return loss_fuct
     
     def training_step(self,batch, batch_idx):

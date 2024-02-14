@@ -56,8 +56,8 @@ def cos2mat(imgName,save_name):
 
 
 
-picture = 'IMAGE_HH_SRA_strip_013.cos'
-save_name = 'converted_image.npy'
+picture = '../data/IMAGE_HH_SRA_KOELN.cos'
+save_name = '../data/converted_image.npy'
 
 cos2mat(picture, save_name)
 
