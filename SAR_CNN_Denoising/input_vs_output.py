@@ -20,7 +20,7 @@ def compare_input_output_patches(input_folder, output_folder, start_idx, end_idx
     num_cols = num_images  # One column per image
     num_rows = 2  # Two rows: one for input, one for output
 
-    plt.figure(figsize=(10, num_rows * 2))  # Adjust figure sizeAjustar tamaño de la figura
+    plt.figure(figsize=(10, num_rows * 2))  # Adjust figure size Ajustar tamaño de la figura
 
     for i, idx in enumerate(range(start_idx, end_idx)):
         # Load input and output patches

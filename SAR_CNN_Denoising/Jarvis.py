@@ -25,7 +25,8 @@ from Activation_functions import *
 os.environ[
     'TF_CPP_MIN_LOG_LEVEL'] = '1'  # KEEP THIS BEFOR TF IMPORT and see tf.get_looger below, To disable informations, else '0' = DEBUG, '1' = INFO, '2' = WARNING, '3' = ERROR
 os.environ['CUDA_DEVICE_ORDER'] = 'PCI_BUS_ID'
-os.environ['CUDA_VISIBLE_DEVICES'] = '0'  # '1,3,4,5,6,7' for 12, '0','1','2','3' on 21
+os.environ['CUDA_VISIBLE_DEVICES'] = '0,1'  # '1,3,4,5,6,7' for 12, '0','1','2','3' on 21
+
 torch.set_float32_matmul_precision('medium')
 
 main_path = os.path.dirname(os.path.abspath(__file__))
