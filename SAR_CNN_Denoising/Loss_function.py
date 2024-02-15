@@ -3,7 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import json
 # Load global parameters from JSON file
-config_file = "../SAR_CNN_Denoising/CONFIGURATIONS.json"  # Update with your JSON file path
+config_file = "../config.json"  # Update with your JSON file path
 with open(config_file, 'r') as json_file:
     global_parameters = json.load(json_file)
 

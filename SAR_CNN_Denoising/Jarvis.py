@@ -34,7 +34,7 @@ main_path = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, main_path+"/../")
 
 # Load global parameters from JSON file
-config_file = "../SAR_CNN_Denoising/CONFIGURATIONS.json"  # Update with your JSON file path
+config_file = "../config.json"  # Update with your JSON file path
 
 with open(config_file, 'r') as json_file:
     global_parameters = json.load(json_file)
@@ -241,7 +241,8 @@ class Autoencoder_Wilson_Ver1 (pl.LightningModule,NPYDataLoader):
 
         # Denormalizing bk and rk, but still in log domain
         log_bk = bk * (self.M - self.m) + self.m
-        log_rk = rk * (self.M - self.m) + self.m
+        # log_rk = rk * (self.M - self.m) + self.m
+        log_rk = rk
         # log_bk = bk * (2 * (self.M - self.m)) + 2 * self.m
         # log_rk = rk * (2 * (self.M - self.m)) + 2 * self.m
 

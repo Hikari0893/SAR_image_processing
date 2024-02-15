@@ -7,7 +7,7 @@ import os
 os.environ['CUDA_VISIBLE_DEVICES'] = '0'  # '1,3,4,5,6,7' for 12, '0','1','2','3' on 21
 
 from Jarvis import *
-config_file = "../SAR_CNN_Denoising/CONFIGURATIONS.json"  # Update with your JSON file path
+config_file = "../config.json"  # Update with your JSON file path
 
 # Load the global parameters from the JSON file
 with open(config_file, 'r') as json_file:
@@ -181,12 +181,6 @@ if patch_index is not None:
         sum = (reconstructed_image_A + reconstructed_image_B)/2
         filename = '../results/test_AB_patchnum'+str(patch_index)
         store_data_and_plot(sum,  noisy_threshold, filename)
-
-
-
-
-
-
 
 else:
     ORIGINAL_DIMS = (8244,9090)

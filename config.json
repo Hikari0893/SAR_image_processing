@@ -8,7 +8,7 @@
       "CKPT": "./mis_checkpoints/WilsonVer1_Net_co_log_likelihood_v2_leaky_relu_10_10_0.001-v3.ckpt",
       "INPUT_FOLDER": "../data/patches/General_A",
       "FUNCTION": "leaky_relu",
-      "REFERENCE_FOLDER": "../data/patches/General_SLC",
+      "REFERENCE_FOLDER": "../data/patches/General_B",
       "SELECT": "co_log_likelihood_v2",
       "learning_rate": 1e-3,
       "WEIGHT_DECAY": 0.0,
