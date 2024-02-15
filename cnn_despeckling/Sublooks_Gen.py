@@ -17,7 +17,7 @@ def data_plot(im, threshold):
     return im
 
 # Loading image
-# picture = np.load('/home/tonix/Documents/Dayana/SAR_CNN_Denoising/slc_065.npy')
+# picture = np.load('/home/tonix/Documents/Dayana/cnn_despeckling/slc_065.npy')
 picture = np.load('../data/tsx_hh_slc_neustrelitz.npy')
 # id = 'koeln'
 # id = 'shenyang'
