@@ -18,10 +18,9 @@ import torch.nn as nn
 import torch.nn.functional as F
 import json
 
-
-from Dataloader_class import NPYDataLoader
-from Loss_function import *
-from Activation_functions import *
+from cnn_despeckling.Dataloader_class import NPYDataLoader
+from cnn_despeckling.Loss_function import *
+from cnn_despeckling.Activation_functions import *
 
 os.environ[
     'TF_CPP_MIN_LOG_LEVEL'] = '1'  # KEEP THIS BEFOR TF IMPORT and see tf.get_looger below, To disable informations, else '0' = DEBUG, '1' = INFO, '2' = WARNING, '3' = ERROR
@@ -242,7 +241,7 @@ class Autoencoder_Wilson_Ver1 (pl.LightningModule,NPYDataLoader):
         # Denormalizing bk and rk, but still in log domain
         log_bk = bk * (self.M - self.m) + self.m
         # log_rk = rk * (self.M - self.m) + self.m
-        log_rk = rk
+        log_rk = torch.log(rk + 1e-7)
         # log_bk = bk * (2 * (self.M - self.m)) + 2 * self.m
         # log_rk = rk * (2 * (self.M - self.m)) + 2 * self.m
 

@@ -6,7 +6,8 @@ from PIL import Image
 import os
 os.environ['CUDA_VISIBLE_DEVICES'] = '0'  # '1,3,4,5,6,7' for 12, '0','1','2','3' on 21
 
-from Jarvis import *
+from cnn_despeckling.Jarvis import *
+
 config_file = "../config.json"  # Update with your JSON file path
 
 # Load the global parameters from the JSON file
