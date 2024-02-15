@@ -40,8 +40,7 @@ def test(sublooks, stride, output_base_folder, pat_size=256):
     if not os.path.exists(output_base_folder):
         os.makedirs(output_base_folder)
 
-    GeneralNames = ["GeneralA","GeneralB","GeneralKenobi"]
-        
+    GeneralNames = ["General_A_Koeln","General_B_Koeln","General_SLC_Koeln"]
 
     for idx, sublook in enumerate(sublooks):
         # Create a folder for this image's patches GeneralX
@@ -95,15 +94,28 @@ def visualize_patches(folder, num_patches=5):
         plt.axis('off')
         plt.title(f'Patch {i}')
     plt.show()
-
+output_base_folder = '../data/patches'
 pattern = 'sublookA*'
 A_files = sorted(glob.glob('../SAR_CNN_Denoising/'+pattern))
 pattern = 'sublookB*'
 B_files = sorted(glob.glob('../SAR_CNN_Denoising/'+pattern))
+pattern = 'tsx*'
+slc_files = sorted(glob.glob('../data/'+pattern))
 
-Both    = [A_files,B_files]
+stride = 256
+test([A_files, B_files, slc_files], stride, output_base_folder)
 
-output_base_folder = '../data/patches'
-stride = 64
-test(Both, stride, output_base_folder)
+# plt.figure();
+# plt.imshow(np.sqrt(np.squeeze(np.load("../data/patches/General_A_Koeln/patch_0000001.npy"))), vmax=800, cmap="gray")
+# plt.figure();
+# plt.imshow(np.sqrt(np.squeeze(np.load("../data/patches/General_A_Koeln/patch_0000001.npy"))), vmax=800, cmap="gray")
+# plt.figure();
+# plt.imshow(np.sqrt(np.squeeze(np.load("../data/patches/General_A_Koeln/patch_0000002.npy"))), vmax=800, cmap="gray")
+
+# plt.figure();
+# plt.imshow(np.sqrt(np.squeeze(np.load("../data/patches/General_SLC_Koeln/patch_0000001.npy"))), vmax=800, cmap="gray")
+# plt.figure();
+# plt.imshow(np.sqrt(np.squeeze(np.load("../data/patches/General_SLC_Koeln/patch_0000001.npy"))), vmax=800, cmap="gray")
+# plt.figure();
+# plt.imshow(np.sqrt(np.squeeze(np.load("../data/patches/General_SLC_Koeln/patch_0000002.npy"))), vmax=800, cmap="gray")
 

@@ -21,7 +21,6 @@ patch_folder_A = global_parameters['global_parameters']['INPUT_FOLDER']
 patch_folder_B = global_parameters['global_parameters']['REFERENCE_FOLDER']
 num_workers = int(global_parameters['global_parameters']['NUMWORKERS'])
 
-
 # Field
 patch_index = 200
 
@@ -135,42 +134,50 @@ directory =str('../')
 # _________________________________________________________________________________________
 model.to(device)
 
+patches2process = [200,1300]
 if patch_index is not None:
-    ORIGINAL_DIMS = (256, 256)
+    for patch_index in patches2process:
+        ORIGINAL_DIMS = (256, 256)
 
-    processed_patches = []
-    # Get all .npy files and sort them
-    patch_files = [f for f in os.listdir(patch_folder_A) if f.endswith('.npy')]
-    patch_files.sort(key=lambda x: int(os.path.splitext(x)[0].split('_')[-1]))  # Sorting by index
-    sublook_a = [patch_files[patch_index]]
-    sublook_a = np.squeeze(np.load(os.path.join(patch_folder_A, sublook_a[0])))
-    sublook_a = np.sqrt(sublook_a)
-    threshold = 3 * np.mean(sublook_a)  # + 3 * np.std(reconstructed_image_A)
-    filename = '../test_sublookA_noisy'
-    store_data_and_plot(sublook_a, threshold, filename)
+        processed_patches = []
+        # Get all .npy files and sort them
+        patch_files = [f for f in os.listdir(patch_folder_A) if f.endswith('.npy')]
+        patch_files.sort(key=lambda x: int(os.path.splitext(x)[0].split('_')[-1]))  # Sorting by index
+        sublook_a = [patch_files[patch_index]]
+        sublook_a = np.squeeze(np.load(os.path.join(patch_folder_A, sublook_a[0])))
+        int_a = sublook_a
+        sublook_a = np.sqrt(sublook_a)
+        threshold = 3 * np.mean(sublook_a)  # + 3 * np.std(reconstructed_image_A)
+        filename = '../test_sublookA_noisy_patchnum_'+str(patch_index)
+        store_data_and_plot(sublook_a, threshold, filename)
 
-    processed_patchesA = process_patches_with_model(patch_folder_A, model, device, desc='patches SLA',
-                                                    patch_index=patch_index)
-    reconstructed_image_A = reconstruct_image_from_processed_patches(processed_patchesA, ORIGINAL_DIMS,
-                                                                     desc='patches SLA')
-    filename = '../test_sublookA_filtered'
-    store_data_and_plot(reconstructed_image_A, threshold, filename)
+        processed_patchesA = process_patches_with_model(patch_folder_A, model, device, desc='patches SLA',
+                                                        patch_index=patch_index)
+        reconstructed_image_A = reconstruct_image_from_processed_patches(processed_patchesA, ORIGINAL_DIMS,
+                                                                         desc='patches SLA')
+        filename = '../test_sublookA_filtered_patchnum_'+str(patch_index)
+        store_data_and_plot(reconstructed_image_A, threshold, filename)
 
 
-    patch_files = [f for f in os.listdir(patch_folder_B) if f.endswith('.npy')]
-    patch_files.sort(key=lambda x: int(os.path.splitext(x)[0].split('_')[-1]))  # Sorting by index
-    sublook_b = [patch_files[patch_index]]
-    sublook_b = np.squeeze(np.load(os.path.join(patch_folder_B, sublook_b[0])))
-    sublook_b = np.sqrt(sublook_b)
-    filename = '../test_sublookB_noisy'
-    store_data_and_plot(sublook_b, threshold, filename)
-    processed_patchesB = process_patches_with_model(patch_folder_B, model, device, desc='patches SLB',
-                                                    patch_index=patch_index)
-    reconstructed_image_B = reconstruct_image_from_processed_patches(processed_patchesB, ORIGINAL_DIMS,
-                                                                     desc='patches SLB')
-    filename = '../test_sublookB_filtered'
-    store_data_and_plot(reconstructed_image_B, threshold, filename)
+        patch_files = [f for f in os.listdir(patch_folder_B) if f.endswith('.npy')]
+        patch_files.sort(key=lambda x: int(os.path.splitext(x)[0].split('_')[-1]))  # Sorting by index
+        sublook_b = [patch_files[patch_index]]
+        sublook_b = np.squeeze(np.load(os.path.join(patch_folder_B, sublook_b[0])))
+        int_b = sublook_b
+        sublook_b = np.sqrt(sublook_b)
+        filename = '../test_sublookB_noisy_patchnum_'+str(patch_index)
+        store_data_and_plot(sublook_b, threshold, filename)
+        processed_patchesB = process_patches_with_model(patch_folder_B, model, device, desc='patches SLB',
+                                                        patch_index=patch_index)
+        reconstructed_image_B = reconstruct_image_from_processed_patches(processed_patchesB, ORIGINAL_DIMS,
+                                                                         desc='patches SLB')
+        filename = '../test_sublookB_filtered_patchnum_'+str(patch_index)
+        store_data_and_plot(reconstructed_image_B, threshold, filename)
 
+
+        sum = (int_a + int_b)/2
+        filename = '../test_AB_patchnum'+str(patch_index)
+        store_data_and_plot(reconstructed_image_B, threshold, filename)
 else:
     ORIGINAL_DIMS = (8244,9090)
     # Plotting original and filtered amplitude images
