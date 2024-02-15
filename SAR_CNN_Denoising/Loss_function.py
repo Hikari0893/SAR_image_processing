@@ -122,10 +122,11 @@ class Loss_funct(nn.Module):
         if X_hat.shape != Y_reference.shape:
             raise ValueError("X_hat and Y_reference must be of the same shape")
 
+
         # import matplotlib.pyplot as plt
         # import numpy as np
-        # Ynpy = Y_reference[0,0,:,:].cpu()
-        # Xnpy = X_hat[0,0,:,:].cpu()
+        # Ynpy = Y_reference[0,0,:,:].cpu().numpy()
+        # Xnpy = X_hat[0,0,:,:].cpu().numpy()
         #
         # plt.imshow(np.exp(Ynpy)**(1/2), cmap="gray", vmax=800)
         # plt.figure()

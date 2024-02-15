@@ -5,7 +5,7 @@ from patching_pre import process_blocks_slc
 # Given loading code
 ROW_SIZE    = 750
 COLUMN_SIZE = 750
-picture = np.load('converted_image.npy')
+picture = np.load('tsx_hh_slc_koeln.npy')
 
 
 complex_image = picture[:, :, 0] + 1j * picture[: ,: , 1]

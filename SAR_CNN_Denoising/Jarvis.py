@@ -57,7 +57,7 @@ ratio = global_parameters['global_parameters']['training_data_percentage']
 # Save checkpoints every n epochs
 checkpoint_callback = ModelCheckpoint(
         dirpath ='mis_checkpoints',
-        filename =f"WilsonVer1_Net_{select}_{function}_{batch_size}_{epochs}",
+        filename =f"WilsonVer1_Net_{select}_{function}_{batch_size}_{epochs}_{learning_rate}",
         save_top_k = -1,
         every_n_epochs = 1
     )
@@ -133,10 +133,8 @@ class my_Unet(nn.Module):
         # Encoder
          # (32, 1, 256, 256)
 
-        skip = [input]
-
         encoder_0 = self.activation_funct(self.enc_conv0(input), function) # (Batch_size, 32, 256, 256)
-        skip.append(encoder_0)
+        skip = [encoder_0]
         
         encoder_1 = self.activation_funct(self.enc_pool1(self.enc_bn1(self.enc_conv1(encoder_0))), function) # (Batch_size, 64, 128, 128)
         skip.append(encoder_1)
@@ -158,7 +156,6 @@ class my_Unet(nn.Module):
         encoder_6 = encoder_6.view(encoder_6.size(0), -1)
         fc1_ecoder = self.activation_funct(self.fc1_encoder(encoder_6), function)
         fc2_encoder = self.activation_funct(self.fc2_encoder(fc1_ecoder), function)
-
 
         # ... continue forward pass through additional encoder layers
 
