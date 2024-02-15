@@ -55,11 +55,11 @@ c = int((overlap_factor * M)/2)
 a = fft_img[:,0:M//2+c]
 b = fft_img[:,M//2-c:M]
 
-if perform_shift:
-    a_shift = np.argmax(np.gradient(gaussian_filter(calculate_1D_spectrum_joint(a), sigma=10)))
-    b_shift = np.argmin(np.gradient(gaussian_filter(calculate_1D_spectrum_joint(b), sigma=10)))
-else:
-    a_shift = 0
+# if perform_shift:
+#     a_shift = np.argmax(np.gradient(gaussian_filter(calculate_1D_spectrum_joint(a), sigma=10)))
+#     b_shift = np.argmin(np.gradient(gaussian_filter(calculate_1D_spectrum_joint(b), sigma=10)))
+# else:
+a_shift = 0
 #Free memory
 del fft_img
 
