@@ -81,9 +81,9 @@ class NPYDataLoader:
         self.dataset_B = NPYDataset(folder_B, ratio)
         if only_test == False:
                 
-            training_ratio   = 0.6
-            validation_ratio = 0.2
-            test_ratio       = 0.2
+            training_ratio   = 0.75
+            validation_ratio = 0.25
+            test_ratio       = 0
             
             dataset_size    = len(self.dataset_A)
             training_size   = int(training_ratio * dataset_size)

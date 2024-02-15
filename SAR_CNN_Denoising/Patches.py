@@ -42,7 +42,7 @@ def test(sublooks, stride, output_base_folder, pat_size=256):
     if not os.path.exists(output_base_folder):
         os.makedirs(output_base_folder)
 
-    GeneralNames = ["General_A_Koeln", "General_B_Koeln", "General_SLC_Koeln"]
+    GeneralNames = ["General_A", "General_B", "General_SLC"]
 
     for idx, sublook in enumerate(sublooks):
         # Create a folder for this image's patches GeneralX
@@ -101,9 +101,9 @@ def visualize_patches(folder, num_patches=5):
 
 output_base_folder = '../data/patches'
 pattern = 'sublookA*'
-A_files = sorted(glob.glob('../SAR_CNN_Denoising/' + pattern))
+A_files = sorted(glob.glob('../data/' + pattern))
 pattern = 'sublookB*'
-B_files = sorted(glob.glob('../SAR_CNN_Denoising/' + pattern))
+B_files = sorted(glob.glob('../data/' + pattern))
 pattern = 'tsx*'
 slc_files = sorted(glob.glob('../data/' + pattern))
 

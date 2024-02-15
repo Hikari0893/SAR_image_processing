@@ -18,7 +18,11 @@ def data_plot(im, threshold):
 
 # Loading image
 # picture = np.load('/home/tonix/Documents/Dayana/SAR_CNN_Denoising/slc_065.npy')
-picture = np.load('../data/converted_image.npy')
+picture = np.load('../data/tsx_hh_slc_neustrelitz.npy')
+# id = 'koeln'
+# id = 'shenyang'
+id = 'bangkok'
+id = 'neustrelitz'
 
 rg_sta = 1000
 rg_end = 2000
@@ -28,7 +32,7 @@ crop = [rg_sta, rg_end, az_sta, az_end]
 
 # Reconstruct the complex image from its real and imaginary parts.
 debug = False
-full_image = False
+full_image = True
 if full_image:
     complex_image = picture[:, :, 0] + 1j * picture[: ,: , 1]
 else:
@@ -90,50 +94,50 @@ del sections
 spatial_sectA = ifft(ifftshift(section_A), axis=1)
 del section_A
 
-np.save('sublookA.npy', np.stack((np.real(spatial_sectA), np.imag(spatial_sectA)), axis = 2))
+np.save('../data/sublookA_'+id+'.npy', np.stack((np.real(spatial_sectA), np.imag(spatial_sectA)), axis = 2))
 
-
-#Sublook display
-plt.figure()
-plt.set_cmap('gray')
-plt.title('Sublook A')
-plt.xlabel('Range')
-plt.ylabel('Azimuth')
-plt.imshow(data_plot(np.abs(spatial_sectA), threshold))
-plt.savefig('sublookA_'+str(perform_shift)+'.png')
+#
+# #Sublook display
+# plt.figure()
+# plt.set_cmap('gray')
+# plt.title('Sublook A')
+# plt.xlabel('Range')
+# plt.ylabel('Azimuth')
+# plt.imshow(data_plot(np.abs(spatial_sectA), threshold))
+# plt.savefig('amp_A_'+str(perform_shift)+'.png')
 
 #IFFT by row and IFFTshift
 spatial_sectB = ifft(ifftshift(section_B), axis=1)
 
-np.save('sublookB.npy', np.stack((np.real(spatial_sectB), np.imag(spatial_sectB)), axis = 2))
+np.save('../data/sublookB_'+id+'.npy', np.stack((np.real(spatial_sectB), np.imag(spatial_sectB)), axis = 2))
 
-#Sublook display
-plt.figure()
-plt.set_cmap('gray')
-plt.title('Sublook B')
-plt.xlabel('Range')
-plt.ylabel('Azimuth')
-plt.imshow(data_plot(np.abs(spatial_sectB), threshold))
-plt.savefig('sublookB_'+str(perform_shift)+'.png')
-
-#Display of the reconstructed image
-recon_intensity = (np.abs(spatial_sectA)**2 + np.abs(spatial_sectB)**2)/2
-plt.figure()
-plt.set_cmap('gray')
-plt.title('Reconstructed Image')
-plt.xlabel('Range')
-plt.ylabel('Azimuth')
-plt.imshow(data_plot(np.sqrt(recon_intensity), threshold))
-plt.savefig('2look_shift_'+str(perform_shift)+'.png')
-
-# Difference Image (for visualizing the reconstruction error)
-plt.figure()
-ratio = np.divide(recon_intensity + 1e-10, (np.abs(complex_image) ** 2) + 1e-10)
-ratio = np.clip(ratio, 0, 4)
-plt.imshow(ratio, vmax=4)
-plt.title('Difference Image')
-plt.colorbar()
-plt.savefig('ratio_image_shift_'+str(perform_shift)+'.png')
-plt.show()
-
+# #Sublook display
+# plt.figure()
+# plt.set_cmap('gray')
+# plt.title('Sublook B')
+# plt.xlabel('Range')
+# plt.ylabel('Azimuth')
+# plt.imshow(data_plot(np.abs(spatial_sectB), threshold))
+# plt.savefig('ampB_'+str(perform_shift)+'.png')
+#
+# #Display of the reconstructed image
+# recon_intensity = (np.abs(spatial_sectA)**2 + np.abs(spatial_sectB)**2)/2
+# plt.figure()
+# plt.set_cmap('gray')
+# plt.title('Reconstructed Image')
+# plt.xlabel('Range')
+# plt.ylabel('Azimuth')
+# plt.imshow(data_plot(np.sqrt(recon_intensity), threshold))
+# plt.savefig('2look_shift_'+str(perform_shift)+'.png')
+#
+# # Difference Image (for visualizing the reconstruction error)
+# plt.figure()
+# ratio = np.divide(recon_intensity + 1e-10, (np.abs(complex_image) ** 2) + 1e-10)
+# ratio = np.clip(ratio, 0, 4)
+# plt.imshow(ratio, vmax=4)
+# plt.title('Difference Image')
+# plt.colorbar()
+# plt.savefig('ratio_image_shift_'+str(perform_shift)+'.png')
+# plt.show()
+#
 

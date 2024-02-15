@@ -4,7 +4,7 @@ import json
 from tqdm import tqdm
 from PIL import Image
 import os
-os.environ['CUDA_VISIBLE_DEVICES'] = '2'  # '1,3,4,5,6,7' for 12, '0','1','2','3' on 21
+os.environ['CUDA_VISIBLE_DEVICES'] = '0'  # '1,3,4,5,6,7' for 12, '0','1','2','3' on 21
 
 from Jarvis import *
 config_file = "../SAR_CNN_Denoising/CONFIGURATIONS.json"  # Update with your JSON file path
@@ -56,8 +56,6 @@ def process_patches_with_model(patch_folder, model, device, desc='patches SLA', 
 
         # Convert output tensor to NumPy array and move to CPU
         output_array = output_tensor.squeeze(0).cpu().numpy()  # Remove batch dimension
-        
-
         processed_patches.append(output_array)
 
     return processed_patches
@@ -97,8 +95,6 @@ def store_data_and_plot(im, threshold, filename):
     im = Image.fromarray(im.astype(np.uint8)).convert('L')
     im.save(filename + '.png')
 
-
-
 def calculate_enl(image, mask=None):
     """
    Calculates the Equivalent Number of Views (ENL) for a SAR image.
@@ -127,8 +123,6 @@ def calculate_enl(image, mask=None):
 
     return enl
 
-
-
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 directory =str('../')
 # _________________________________________________________________________________________
@@ -139,6 +133,16 @@ if patch_index is not None:
     for patch_index in patches2process:
         ORIGINAL_DIMS = (256, 256)
 
+        full_patches = "../data/patches/General_SLC/"
+        org_slc_patches = [f for f in os.listdir(full_patches) if f.endswith('.npy')]
+        org_slc_patches.sort(key=lambda x: int(os.path.splitext(x)[0].split('_')[-1]))  # Sorting by index
+        noisy_slc = [org_slc_patches[patch_index]]
+        noisy_slc = np.squeeze(np.load(os.path.join(full_patches, noisy_slc[0])))
+        amp_full = np.sqrt(noisy_slc)
+        noisy_threshold = 3 * np.mean(amp_full)  # + 3 * np.std(reconstructed_image_A)
+        filename = '../results/test_full_noisy_patchnum_'+str(patch_index)
+        store_data_and_plot(amp_full, noisy_threshold, filename)
+
         processed_patches = []
         # Get all .npy files and sort them
         patch_files = [f for f in os.listdir(patch_folder_A) if f.endswith('.npy')]
@@ -147,17 +151,16 @@ if patch_index is not None:
         sublook_a = np.squeeze(np.load(os.path.join(patch_folder_A, sublook_a[0])))
         int_a = sublook_a
         sublook_a = np.sqrt(sublook_a)
-        threshold = 3 * np.mean(sublook_a)  # + 3 * np.std(reconstructed_image_A)
-        filename = '../test_sublookA_noisy_patchnum_'+str(patch_index)
-        store_data_and_plot(sublook_a, threshold, filename)
+        filename = '../results/test_sublookA_noisy_patchnum_'+str(patch_index)
+        store_data_and_plot(sublook_a, noisy_threshold, filename)
 
         processed_patchesA = process_patches_with_model(patch_folder_A, model, device, desc='patches SLA',
                                                         patch_index=patch_index)
         reconstructed_image_A = reconstruct_image_from_processed_patches(processed_patchesA, ORIGINAL_DIMS,
                                                                          desc='patches SLA')
-        filename = '../test_sublookA_filtered_patchnum_'+str(patch_index)
-        store_data_and_plot(reconstructed_image_A, threshold, filename)
 
+        filename = '../results/test_sublookA_filtered_patchnum_'+str(patch_index)
+        store_data_and_plot(reconstructed_image_A,  noisy_threshold, filename)
 
         patch_files = [f for f in os.listdir(patch_folder_B) if f.endswith('.npy')]
         patch_files.sort(key=lambda x: int(os.path.splitext(x)[0].split('_')[-1]))  # Sorting by index
@@ -165,19 +168,26 @@ if patch_index is not None:
         sublook_b = np.squeeze(np.load(os.path.join(patch_folder_B, sublook_b[0])))
         int_b = sublook_b
         sublook_b = np.sqrt(sublook_b)
-        filename = '../test_sublookB_noisy_patchnum_'+str(patch_index)
-        store_data_and_plot(sublook_b, threshold, filename)
+        filename = '../results/test_sublookB_noisy_patchnum_'+str(patch_index)
+        store_data_and_plot(sublook_b, noisy_threshold, filename)
         processed_patchesB = process_patches_with_model(patch_folder_B, model, device, desc='patches SLB',
                                                         patch_index=patch_index)
         reconstructed_image_B = reconstruct_image_from_processed_patches(processed_patchesB, ORIGINAL_DIMS,
                                                                          desc='patches SLB')
-        filename = '../test_sublookB_filtered_patchnum_'+str(patch_index)
-        store_data_and_plot(reconstructed_image_B, threshold, filename)
+        filename = '../results/test_sublookB_filtered_patchnum_'+str(patch_index)
+        # 3 * np.mean(reconstructed_image_B)
+        store_data_and_plot(reconstructed_image_B,  noisy_threshold, filename)
+
+        sum = (reconstructed_image_A + reconstructed_image_B)/2
+        filename = '../results/test_AB_patchnum'+str(patch_index)
+        store_data_and_plot(sum,  noisy_threshold, filename)
 
 
-        sum = (int_a + int_b)/2
-        filename = '../test_AB_patchnum'+str(patch_index)
-        store_data_and_plot(reconstructed_image_B, threshold, filename)
+
+
+
+
+
 else:
     ORIGINAL_DIMS = (8244,9090)
     # Plotting original and filtered amplitude images

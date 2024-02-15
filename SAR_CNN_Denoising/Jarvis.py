@@ -9,7 +9,8 @@ from pytorch_lightning.loggers import TensorBoardLogger
 from pytorch_lightning.callbacks import TQDMProgressBar
 from pytorch_lightning.callbacks import ModelCheckpoint
 #from pytorch_lightning.tuner import Tuner
-
+from scipy import special
+import numpy as np
 import pytorch_lightning as pl
 import torch
 from torch.optim.lr_scheduler import ReduceLROnPlateau
@@ -25,7 +26,7 @@ from Activation_functions import *
 os.environ[
     'TF_CPP_MIN_LOG_LEVEL'] = '1'  # KEEP THIS BEFOR TF IMPORT and see tf.get_looger below, To disable informations, else '0' = DEBUG, '1' = INFO, '2' = WARNING, '3' = ERROR
 os.environ['CUDA_DEVICE_ORDER'] = 'PCI_BUS_ID'
-os.environ['CUDA_VISIBLE_DEVICES'] = '0,1'  # '1,3,4,5,6,7' for 12, '0','1','2','3' on 21
+os.environ['CUDA_VISIBLE_DEVICES'] = '0'  # '1,3,4,5,6,7' for 12, '0','1','2','3' on 21
 
 torch.set_float32_matmul_precision('medium')
 
@@ -42,6 +43,8 @@ with open(config_file, 'r') as json_file:
 L = int(global_parameters['global_parameters']['L'])
 M = float(global_parameters['global_parameters']['M'])
 m = float(global_parameters['global_parameters']['m'])
+c = (1 / 2) * (special.psi(L) - np.log(L))
+
 select = global_parameters['global_parameters']['SELECT'] #To select the activation function
 function = global_parameters['global_parameters']['FUNCTION'] #Loss function
 learning_rate = float(global_parameters['global_parameters']['learning_rate'])
@@ -193,7 +196,7 @@ class my_Unet(nn.Module):
     
     
 class Autoencoder_Wilson_Ver1 (pl.LightningModule,NPYDataLoader):
-    def __init__(self, width = 256, hight = 256):
+    def __init__(self, width = 256, height = 256):
         pl.LightningModule.__init__(self)
         NPYDataLoader.__init__(self, batch_size=batch_size, num_workers=num_workers, 
                                folder_A = input_folder_A, folder_B = input_folder_B, only_test=only_test, ratio=ratio)
@@ -211,24 +214,20 @@ class Autoencoder_Wilson_Ver1 (pl.LightningModule,NPYDataLoader):
     def configure_optimizers(self):
         return torch.optim.Adam(self.parameters(), lr=  self.lr)
     
-    def normalize(self,batch):
+    def normalize(self, batch):
         #remove this after dataset
         self.M  = M
         self.m  = m
-        # normalize     = (torch.log(batch + 1e-7) - 2*m) /(2*(M - m))
-        normalize     = (torch.log(batch + 1e-7) - m) /((M - m))
+        return (torch.log(batch + 1e-7) - 2*self.m)/(2*(self.M - self.m))
 
-        return normalize
-    
+    # Not used given the architecture...
     def denormalize(self,normalized_data, Max, min):
-        
         log_data = normalized_data * (Max - min) + min
         original_data = torch.exp(log_data) - 1e-7
         return original_data
-    
+
     def common_step(self,batch):
         # This defines how to handle a training step
-
         # If we define the input pair as (ak,bk) and output as rk
         # These are the sublook(a,b) intensities
         x, x_true = batch
@@ -237,28 +236,14 @@ class Autoencoder_Wilson_Ver1 (pl.LightningModule,NPYDataLoader):
         ak = self.normalize(x)
         bk = self.normalize(x_true)
 
-
-        # import matplotlib.pyplot as plt
-        # import numpy as np
-        # Ynpy = ak[0,0,:,:].cpu().numpy()
-        # Xnpy = bk[0,0,:,:].cpu().numpy()
-        # a = 2
-
         #neuronal network
         rk = self(ak)
 
         # Denormalizing bk and rk, but still in log domain
         log_bk = bk * (self.M - self.m) + self.m
         log_rk = rk * (self.M - self.m) + self.m
-
-        # import matplotlib.pyplot as plt
-        # import numpy as np
-        #
-        # plt.imshow(np.sqrt(np.exp(log_rk[0, 0, :, :].cpu().numpy())), vmax=800)
-        # plt.figure()
-        # plt.imshow(np.sqrt(np.exp(log_bk[0, 0, :, :].cpu().numpy())), vmax=800)
-        # plt.show()
-        # a=2
+        # log_bk = bk * (2 * (self.M - self.m)) + 2 * self.m
+        # log_rk = rk * (2 * (self.M - self.m)) + 2 * self.m
 
         #loss function
         loss_fuct = self.loss_f(log_rk, log_bk, select = select) #The select parameter is to choose the loss function
@@ -298,7 +283,6 @@ class Autoencoder_Wilson_Ver1 (pl.LightningModule,NPYDataLoader):
         reconstructions = self(inputs)
         denormalized_reconstructions = self.denormalize(reconstructions, self.M, self.m)
         original_shape_reconstructions = denormalized_reconstructions.view(-1, 256, 256, 1)
-        
         return original_shape_reconstructions
 
         

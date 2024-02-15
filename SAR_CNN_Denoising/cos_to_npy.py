@@ -45,5 +45,5 @@ def cos2mat(imgName):
     print('[:,:,1] contains the imaginary part of the SLC image data')
     return np.stack((np.real(imgcxs), np.imag(imgcxs)), axis=2)
 
-dir = ''
-np.save('slc_number.npy',cos2mat(dir))
+dir = "../data/IMAGE_HH_SRA_NEUSTRELITZ.cos"
+np.save('../data/tsx_hh_slc_neustrelitz.npy',cos2mat(dir))

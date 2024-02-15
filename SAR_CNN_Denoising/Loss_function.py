@@ -110,7 +110,7 @@ class Loss_funct(nn.Module):
         """
         Custom co-log-likelihood loss function as described in the SAR imaging paper.
         Assumes X_hat and Y_reference are both in log-scale.
-
+2
         Args:
         X_hat (Tensor): Log-transformed predicted pixel values. (X_input -N)
         Y_reference (Tensor): Log-transformed expected noise variance (reference values).
