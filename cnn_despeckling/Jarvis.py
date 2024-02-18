@@ -235,15 +235,24 @@ class Autoencoder_Wilson_Ver1 (pl.LightningModule,NPYDataLoader):
         ak = self.normalize(x)
         bk = self.normalize(x_true)
 
-        #neuronal network
+        # import matplotlib.pyplot as plt
+        # import numpy as np
+        # Ynpy = x[0,0,:,:].cpu().numpy()
+        # Xnpy = x_true[0,0,:,:].cpu().numpy()
+        #
+        # plt.imshow((Ynpy)**(1/2), cmap="gray", vmax=300)
+        # plt.figure()
+        # plt.imshow((Xnpy)**(1/2), cmap="gray", vmax=300)
+        # plt.show()
+        #
+        # a=2
+
+        # neural network (rk is the denoised image, in the signal domain)
         rk = self(ak)
 
         # Denormalizing bk and rk, but still in log domain
-        log_bk = bk * (self.M - self.m) + self.m
-        # log_rk = rk * (self.M - self.m) + self.m
-        log_rk = torch.log(rk + 1e-7)
-        # log_bk = bk * (2 * (self.M - self.m)) + 2 * self.m
-        # log_rk = rk * (2 * (self.M - self.m)) + 2 * self.m
+        log_bk = 2 * bk * (self.M - self.m) + self.m
+        log_rk = 2 * rk * (self.M - self.m) + self.m
 
         #loss function
         loss_fuct = self.loss_f(log_rk, log_bk, select = select) #The select parameter is to choose the loss function

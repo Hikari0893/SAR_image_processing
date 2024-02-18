@@ -10,6 +10,11 @@ with open(config_file, 'r') as json_file:
 # Extract relevant parameters
 Max = global_parameters['global_parameters']['M']
 min = global_parameters['global_parameters']['m']
+# Extract relevant parameters
+L = int(global_parameters['global_parameters']['L'])
+from scipy import special
+import numpy as np
+debias = special.psi(L) - np.log(L)
 
 class Loss_funct(nn.Module):
     def __init__(self):
@@ -44,6 +49,9 @@ class Loss_funct(nn.Module):
 
         elif select == 'co_log_likelihood_v2':
             return self.co_log_likelihood_loss_v2(X_hat, Y_reference)
+
+        elif select == 'l2_log_loss':
+            return self.l2_log_loss(X_hat, Y_reference)
 
         elif select == 'kullback_leibler':
             return F.kl_div(X_hat, Y_reference, reduction='batchmean')
@@ -97,8 +105,16 @@ class Loss_funct(nn.Module):
         if X_hat.shape != Y_reference.shape:
             raise ValueError("X_hat and Y_reference must be of the same shape")
 
-        loss = torch.mean(0.5 * X_hat + (Y_reference/X_hat))
+        denorm = (Y_reference - X_hat) * (Max - min) + min
+        loss = torch.sum(X_hat - Y_reference + torch.exp(denorm))
 
+        return loss
+
+    def l2_log_loss(self, X_hat, Y_reference):
+        if X_hat.shape != Y_reference.shape:
+            raise ValueError("X_hat and Y_reference must be of the same shape")
+
+        loss = (1 / X_hat.size(0)) * torch.sum((X_hat - Y_reference)**2)
         return loss
 
     def co_log_likelihood_loss_v2(self, X_hat, Y_reference):
@@ -141,16 +157,15 @@ class Loss_funct(nn.Module):
         # loss = torch.mean(X_hat + torch.exp(Y_reference - X_hat))
 
         # loss = torch.sum(X_hat - Y_reference + torch.exp(Y_reference - X_hat))
-        loss = torch.sum(X_hat - Y_reference + torch.exp(Y_reference - X_hat))
-
+        # denorm = (Y_reference - X_hat) * (self.M - self.m) + self.m
+        # loss = torch.sum(X_hat - Y_reference + torch.exp(denorm))
+        loss = (1/X_hat.size(0)) * torch.mean(X_hat - Y_reference + torch.exp(Y_reference - X_hat))
         return loss
 
     def JD_div(self, X_hat, Y_reference):
         
         log_data_X = X_hat * (Max- min) + min
         log_data_Y = Y_reference * (Max- min) + min
-        
-        
         
         p = F.softmax(log_data_X, dim = 1 )
         q = F.softmax (log_data_Y, dim = 1)

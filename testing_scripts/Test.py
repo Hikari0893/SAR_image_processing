@@ -7,6 +7,7 @@ import os
 os.environ['CUDA_VISIBLE_DEVICES'] = '0'  # '1,3,4,5,6,7' for 12, '0','1','2','3' on 21
 
 from cnn_despeckling.Jarvis import *
+from cnn_despeckling.utils import normalize, denormalize
 
 config_file = "../config.json"  # Update with your JSON file path
 
@@ -45,11 +46,12 @@ def process_patches_with_model(patch_folder, model, device, desc='patches SLA', 
         # Load patch and convert to PyTorch tensor
         patch_path = os.path.join(patch_folder, filename)
         patch = np.load(patch_path)
+        patch = normalize(patch)
+
         patch_tensor = torch.from_numpy(patch).unsqueeze(0)  # Add batch dimension
 
         # Move tensor to GPU if available
         patch_tensor = patch_tensor.to(device)
-
         # Process with the model
         with torch.no_grad():
             model.eval()
@@ -57,6 +59,7 @@ def process_patches_with_model(patch_folder, model, device, desc='patches SLA', 
 
         # Convert output tensor to NumPy array and move to CPU
         output_array = output_tensor.squeeze(0).cpu().numpy()  # Remove batch dimension
+        output_array = denormalize(output_array)
         processed_patches.append(output_array)
 
     return processed_patches
@@ -87,8 +90,6 @@ def reconstruct_image_from_processed_patches(processed_patches, original_dims, p
     # Normalize to average overlapping regions
     reconstructed /= np.maximum(counts, 1)  # Avoid division by zero
     return np.sqrt(np.abs(reconstructed))
-
-
 
 def store_data_and_plot(im, threshold, filename):
     im = np.clip(im, 0, threshold)
@@ -129,7 +130,7 @@ directory =str('../')
 # _________________________________________________________________________________________
 model.to(device)
 
-patches2process = [200,1300]
+patches2process = [400,1100]
 if patch_index is not None:
     for patch_index in patches2process:
         ORIGINAL_DIMS = (256, 256)
@@ -137,19 +138,16 @@ if patch_index is not None:
         full_patches = "../data/patches/General_SLC/"
         org_slc_patches = [f for f in os.listdir(full_patches) if f.endswith('.npy')]
         org_slc_patches.sort(key=lambda x: int(os.path.splitext(x)[0].split('_')[-1]))  # Sorting by index
-        noisy_slc = [org_slc_patches[patch_index]]
-        noisy_slc = np.squeeze(np.load(os.path.join(full_patches, noisy_slc[0])))
+        p_index = [org_slc_patches[patch_index]]
+
+
+        noisy_slc = np.squeeze(np.load(os.path.join(full_patches, p_index[0])))
         amp_full = np.sqrt(noisy_slc)
         noisy_threshold = 3 * np.mean(amp_full)  # + 3 * np.std(reconstructed_image_A)
         filename = '../results/test_full_noisy_patchnum_'+str(patch_index)
         store_data_and_plot(amp_full, noisy_threshold, filename)
 
-        processed_patches = []
-        # Get all .npy files and sort them
-        patch_files = [f for f in os.listdir(patch_folder_A) if f.endswith('.npy')]
-        patch_files.sort(key=lambda x: int(os.path.splitext(x)[0].split('_')[-1]))  # Sorting by index
-        sublook_a = [patch_files[patch_index]]
-        sublook_a = np.squeeze(np.load(os.path.join(patch_folder_A, sublook_a[0])))
+        sublook_a = np.squeeze(np.load(os.path.join(patch_folder_A, p_index[0])))
         int_a = sublook_a
         sublook_a = np.sqrt(sublook_a)
         filename = '../results/test_sublookA_noisy_patchnum_'+str(patch_index)
@@ -163,10 +161,7 @@ if patch_index is not None:
         filename = '../results/test_sublookA_filtered_patchnum_'+str(patch_index)
         store_data_and_plot(reconstructed_image_A,  noisy_threshold, filename)
 
-        patch_files = [f for f in os.listdir(patch_folder_B) if f.endswith('.npy')]
-        patch_files.sort(key=lambda x: int(os.path.splitext(x)[0].split('_')[-1]))  # Sorting by index
-        sublook_b = [patch_files[patch_index]]
-        sublook_b = np.squeeze(np.load(os.path.join(patch_folder_B, sublook_b[0])))
+        sublook_b = np.squeeze(np.load(os.path.join(full_patches, p_index[0])))
         int_b = sublook_b
         sublook_b = np.sqrt(sublook_b)
         filename = '../results/test_sublookB_noisy_patchnum_'+str(patch_index)
