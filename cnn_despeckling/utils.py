@@ -22,7 +22,7 @@ def denormalize(batch, debias=True):
     # return np.exp(((M - m) * np.squeeze(im) + m + c))
     # return np.exp(((M - m) * np.clip(np.squeeze(batch), 0, 1) + m)) + 1e-7
     if debias:
-        return np.exp(2 * np.clip(np.squeeze(batch), 0, 1) * (M - m) + m + c) + 1e-7
+        return np.exp(2 * np.clip(np.squeeze(batch), 0, 1) * (M - m) + m + c + c/2) + 1e-7
         # return np.exp(2 * np.squeeze(batch) * (M - m) + m + c ) + 1e-5
     else:
         return np.exp(2 * np.clip(np.squeeze(batch), 0, 1) * (M - m) + m) + 1e-7

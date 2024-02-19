@@ -131,6 +131,12 @@ for path in data2filter:
             # A VoR < 1 indicates undersmoothing, that is, part of the speckle remains in the filtered image,
             # whereas VoR > 1 indicates oversmoothing, that is, the filter eliminates also some details of the
             # underlying image.
+            # https://ieeexplore.ieee.org/stamp/stamp.jsp?tp=&arnumber=6515372&tag=1
             print("Approach MoR: " + str(np.mean(res_sl[green_crop[0]:green_crop[1], green_crop[2]:green_crop[3]])) +
                   ", VoR: " + str(np.var(res_sl[green_crop[0]:green_crop[1], green_crop[2]:green_crop[3]])))
             print("Approach ENL: " + str(enl_clean))
+
+            zoom_noisy = np.flipud(orig_amp[red_crop[0]:red_crop[1], red_crop[2]:red_crop[3]])
+            zoom_pred = np.flipud(clean_amp[red_crop[0]:red_crop[1], red_crop[2]:red_crop[3]])
+            imwrite(model_result_folder + '/zoom_corner_reflectors_noisy.png', threshold_and_clip(noisy2plot, zoom_noisy))
+            imwrite(model_result_folder + '/zoom_corner_reflectors_clean.png', threshold_and_clip(noisy2plot, zoom_pred))
