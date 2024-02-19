@@ -34,53 +34,56 @@ stride = 256
 subB_path = "../data/testing/sublookB_neustrelitz.npy"
 slc_path = "../data/testing/tsx_hh_slc_neustrelitz.npy"
 
-# Corner crop
+# City crop
 rg_sta = 8000
 rg_end = rg_sta + 256 * 7
 az_sta = 10000
 az_end = az_sta + 256 * 7
-crop = [rg_sta, rg_end, az_sta, az_end]
+crop1 = [rg_sta, rg_end, az_sta, az_end]
 
 # Forest crop
 rg_sta = 10000
 rg_end = rg_sta + 256 * 3
 az_sta = 8000
 az_end = az_sta + 256 * 3
-crop = [rg_sta, rg_end, az_sta, az_end]
+crop2 = [rg_sta, rg_end, az_sta, az_end]
 
 data2filter = [subB_path, slc_path]
+crops = [crop1, crop2]
 for path in data2filter:
-    model_result_folder = os.path.join("../results/", Path(checkpoint).stem + "/" + Path(path).stem)
-    if not os.path.exists(model_result_folder):
-        print(f"CreateFolder: {model_result_folder}")
-        os.makedirs(model_result_folder)
+    for crop in crops:
+        rg_sta, rg_end, az_sta, az_end = crop
+        model_result_folder = os.path.join("../results/", Path(checkpoint).stem + "/" + Path(path).stem)
+        if not os.path.exists(model_result_folder):
+            print(f"CreateFolder: {model_result_folder}")
+            os.makedirs(model_result_folder)
 
-    arr = np.load(path)
-    arr = arr[rg_sta:rg_end, az_sta:az_end, 0] + 1j * arr[rg_sta:rg_end, az_sta:az_end, 1]
+        arr = np.load(path)
+        arr = arr[rg_sta:rg_end, az_sta:az_end, 0] + 1j * arr[rg_sta:rg_end, az_sta:az_end, 1]
 
-    arr = np.abs(arr)**2
-    # vmax = np.mean(arr) * 3
-    # plt.imshow(arr, cmap="gray", vmax=vmax)
-    ovr = 128
+        arr = np.abs(arr)**2
+        # vmax = np.mean(arr) * 3
+        # plt.imshow(arr, cmap="gray", vmax=vmax)
+        ovr = 128
 
-    patches = create_patches_n(arr[np.newaxis,...], ovr=ovr)
+        patches = create_patches_n(arr[np.newaxis,...], ovr=ovr)
 
-    aaa = mem_process_patches_with_model(patches, model, device)
+        aaa = mem_process_patches_with_model(patches, model, device)
 
-    nb_batch = len(aaa)
-    nb_patches_side = round(nb_batch ** 0.5)
+        nb_batch = len(aaa)
+        nb_patches_side = round(nb_batch ** 0.5)
 
-    reconstructed_image_A = assemble_patches(aaa, nb_patches_side, nb_patches_side, ovr=ovr)
-    # reconstructed_image_A = reconstruct_image_from_processed_patches(aaa, arr.shape, desc='patches SLA', stride=256)
-    reconstructed_image_A = np.sqrt(reconstructed_image_A)
+        reconstructed_image_A = assemble_patches(aaa, nb_patches_side, nb_patches_side, ovr=ovr)
+        # reconstructed_image_A = reconstruct_image_from_processed_patches(aaa, arr.shape, desc='patches SLA', stride=256)
+        reconstructed_image_A = np.sqrt(reconstructed_image_A)
 
-    orig_amp = np.sqrt(arr)
-    noisy_threshold= np.mean(orig_amp)*3
+        orig_amp = np.sqrt(arr)
+        noisy_threshold= np.mean(orig_amp)*3
 
-    filename = model_result_folder + '/noisy'
-    # 3 * np.mean(reconstructed_image_B)
-    store_data_and_plot(orig_amp, noisy_threshold, filename)
+        filename = model_result_folder + '/noisy' + str(crop)
+        # 3 * np.mean(reconstructed_image_B)
+        store_data_and_plot(orig_amp, noisy_threshold, filename)
 
-    filename = model_result_folder + '/clean'
-    # 3 * np.mean(reconstructed_image_B)
-    store_data_and_plot(reconstructed_image_A, noisy_threshold, filename)
+        filename = model_result_folder + '/clean' + str(crop)
+        # 3 * np.mean(reconstructed_image_B)
+        store_data_and_plot(reconstructed_image_A, noisy_threshold, filename)
