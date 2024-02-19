@@ -1,22 +1,13 @@
 import os
 import sys
-from typing import Any
-import matplotlib.pyplot as plt
 #Trainer class
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import TensorBoardLogger
 #look into progress bar
-from pytorch_lightning.callbacks import TQDMProgressBar
-from pytorch_lightning.callbacks import ModelCheckpoint
-#from pytorch_lightning.tuner import Tuner
-from scipy import special
-import numpy as np
+from pytorch_lightning.callbacks import TQDMProgressBar, ModelCheckpoint
 import pytorch_lightning as pl
-import torch
-from torch.optim.lr_scheduler import ReduceLROnPlateau
-import torch.nn as nn
-import torch.nn.functional as F
-import json
+import torch.optim as optim
+from torch.optim import lr_scheduler
 
 from cnn_despeckling.Dataloader_class import NPYDataLoader
 from cnn_despeckling.Loss_function import *
@@ -64,6 +55,24 @@ checkpoint_callback = ModelCheckpoint(
         every_n_epochs = 1
     )
 
+class MyProgressBar(TQDMProgressBar):
+    def init_validation_tqdm(self):
+        bar = super().init_validation_tqdm()
+        if not sys.stdout.isatty():
+            bar.disable = True
+        return bar
+
+    def init_predict_tqdm(self):
+        bar = super().init_predict_tqdm()
+        if not sys.stdout.isatty():
+            bar.disable = True
+        return bar
+
+    def init_test_tqdm(self):
+        bar = super().init_test_tqdm()
+        if not sys.stdout.isatty():
+            bar.disable = True
+        return bar
 
 class my_Unet(nn.Module):
     def __init__(self, width = 256, hight = 256):
@@ -202,16 +211,21 @@ class Autoencoder_Wilson_Ver1 (pl.LightningModule,NPYDataLoader):
         self.lr = learning_rate
         self.loss_f = Loss_funct()
         
-        self.Net    = my_Unet()
+        self.Net = my_Unet()
         # No additional layers needed here, as there is no processing, for now
-        
+
+    def configure_optimizers(self):
+        optimizer = optim.Adam(self.parameters(), lr=self.lr)
+        scheduler = {
+            'scheduler': lr_scheduler.MultiStepLR(optimizer, milestones=[5, 20], gamma=0.1),
+            'interval': 'epoch',  # Adjust the learning rate at the end of each epoch
+        }
+        return [optimizer], [scheduler]
+
     def forward (self, input):
         
         # Simply return the input as is
         return self.Net(input)
-    
-    def configure_optimizers(self):
-        return torch.optim.Adam(self.parameters(), lr=  self.lr)
     
     def normalize(self, batch):
         #remove this after dataset
@@ -311,7 +325,7 @@ if __name__ == '__main__':
     logger = TensorBoardLogger("tb_logs", name=f"Wilson_Net_{select}_{function}_{batch_size}_{epochs}")
     
     trainer = Trainer(logger=logger, fast_dev_run=False, accelerator='gpu',
-                      callbacks=[TQDMProgressBar(refresh_rate=10), checkpoint_callback], 
+                      callbacks=[MyProgressBar(), checkpoint_callback],
                       max_epochs=epochs)
     Wilson_Ver1_Net = Autoencoder_Wilson_Ver1()
        

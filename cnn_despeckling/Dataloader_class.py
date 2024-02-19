@@ -34,8 +34,6 @@ class NPYDataset(Dataset):
             num_files_to_select = int(ratio * len(self.filenames))
             self.filenames = self.filenames[:num_files_to_select]
 
-        print("sorted")
-        
     def __len__(self): #to return the total number of samples in the dataset
         return len(self.filenames)
 

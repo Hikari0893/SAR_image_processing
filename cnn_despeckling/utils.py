@@ -2,6 +2,7 @@ from scipy import special
 import numpy as np
 from tqdm import tqdm
 from PIL import Image
+import matplotlib.pyplot as plt
 import os
 
 from cnn_despeckling.Jarvis import *
@@ -13,15 +14,16 @@ m = -1.429329123112601
 c = (special.psi(L) - np.log(L))
 
 def normalize(batch):
-    return (np.log(batch + 1e-7) - 2 * m) / (2 * (M - m))
+    # batch[batch==0]=1e-2
+    return (np.log(batch + 1e-3) - 2 * m) / (2 * (M - m))
 
 def denormalize(batch, debias=True):
     # return np.exp((M - m) * np.clip(np.squeeze(im), 0, 1) + m) + 1e-6
     # return np.exp(((M - m) * np.squeeze(im) + m + c))
     # return np.exp(((M - m) * np.clip(np.squeeze(batch), 0, 1) + m)) + 1e-7
     if debias:
-        return np.exp(2 * np.clip(np.squeeze(batch), 0, 1) * (M - m) + m + c) + 1e-7
-        # return np.exp(2 * np.squeeze(batch) * (M - m) + m + c) + 1e-7
+        # return np.exp(2 * np.clip(np.squeeze(batch), 0, 1) * (M - m) + m + c) + 1e-7
+        return np.exp(2 * np.squeeze(batch) * (M - m) + m + c) + 1e-7
     else:
         return np.exp(2 * np.clip(np.squeeze(batch), 0, 1) * (M - m) + m) + 1e-7
 
@@ -60,8 +62,14 @@ def process_patches_with_model(patch_folder, model, device, desc='patches SLA', 
 def mem_process_patches_with_model(patch_list, model, device, desc='patches SLA', patch_index=None):
     processed_patches = []
     for patch in tqdm(patch_list, desc='Processing patches ...'):
+        patch[patch==0] += 1e-1
         patch = normalize(patch)
         patch_tensor = torch.from_numpy(patch).unsqueeze(0)  # Add batch dimension
+
+        # plt.imshow(np.sqrt(patch_list[0][0, ...]), vmax=300)
+        # plt.figure()
+        # plt.imshow(patch[0, ...])
+        # plt.show()
 
         # Move tensor to GPU if available
         patch_tensor = patch_tensor.to(device)
@@ -170,16 +178,19 @@ def create_patches_n(arr, pat_size=256, ovr=0):
     return patch_list
 
 
-def assemble_patches(L_patches, r1, r2, ovr, TEST=False, gaussian_std=0.25):
+def assemble_patches(L_patches, ovr, TEST=False, gaussian_std=0.25):
     """
     :param L_patches: list of ordered patches
-    :param r1: # number of patches per row
-    :param r2: # number of patches per column
     :param ovr: overlaping pixels (integer)
     :param TEST: To plot more things
     :param gaussian_std: Standard deviation of the 2D gaussian weights window
     :return: reconstructed array
     """
+
+    nb_batch = len(L_patches)
+    r1 = round(nb_batch ** 0.5)
+    r2 = r1
+
     n = np.shape(L_patches[0])[0]
     ovr = int(ovr)
     assert n > ovr >= 0
@@ -219,3 +230,50 @@ def gaussian_window_2D(n=256, sigma=1., mu=0, m=-1, M=1, ):
     xx, yy = np.meshgrid(np.linspace(m, M, n), np.linspace(m, M, n))
     d = np.sqrt(xx * xx + yy * yy)
     return np.exp(-((d - mu) ** 2 / (2.0 * sigma ** 2)))
+
+def threshold_and_clip(noisy, im, threshold=None):
+    if threshold is None:
+        threshold = np.mean(noisy) + 3*np.std(noisy)
+    im = np.clip(im, 0, threshold)
+    im = im / threshold * 255
+    return im
+
+def plot_residues(I, I_pred, res_only=False, suptitle=None):
+    """ WARNING : some values are excluded with a theshold """
+    Res_I = np.divide(I + 1e-10, I_pred + 1e-10)
+    # Res_I = threshold(Res_I,0,np.percentile(Res_I,100-0.05)) # to exclude the 33 highest valus in the event of a big division
+    # Res_I = threshold(Res_I, 0, 4)
+    Res_I = np.clip(Res_I, 0, 4)
+    if res_only:
+        plt.figure(figsize=(12, 15))
+        # plt.subplot(111, );
+        plt.imshow(Res_I, cmap="gray");
+        plt.title(r"Residual obtained from $I/I_{pred}$");
+        plt.colorbar()
+        if not (suptitle is None):
+            plt.suptitle(suptitle)
+        plt.tight_layout()
+    else:
+        plt.figure(figsize=(12, 15))
+        plt.subplot(211, );
+        plt.imshow(Res_I, cmap="gray");
+        plt.title(r"Residual obtained from $I/I_{pred}$");
+        plt.colorbar()
+        plt.subplot(212);
+        plt.hist(Res_I.flatten(), bins=256);
+        plt.title("Residual's histogram\nmin=%.2f max=%.2f mean=%.2f std=%.2f" % (
+        np.min(Res_I), np.max(Res_I), np.mean(Res_I), np.std(Res_I)));
+        plt.xlabel("Values");
+        plt.ylabel("Count")
+        if not (suptitle is None):
+            plt.suptitle(suptitle)
+        plt.tight_layout()
+    return Res_I
+
+
+
+def T_EF(X, l, h, m, M):
+    """ Element-wise homothety-translation for X between E=[h,l] to F=[m,M] """
+    assert l < h and m <= M
+    return (X - l) * (M - m) / (h - l) + m
+

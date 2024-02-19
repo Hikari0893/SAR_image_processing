@@ -1,11 +1,14 @@
 from pathlib import Path
 import os
 os.environ['CUDA_VISIBLE_DEVICES'] = '0'  # '1,3,4,5,6,7' for 12, '0','1','2','3' on 21
+from cv2 import imwrite
 
 from cnn_despeckling.Jarvis import *
-from cnn_despeckling.utils import (store_data_and_plot,
-                                   reconstruct_image_from_processed_patches,
-                                   mem_process_patches_with_model, create_patches_n, assemble_patches)
+from cnn_despeckling.utils import (plot_residues,
+                                   threshold_and_clip,
+                                   mem_process_patches_with_model,
+                                   create_patches_n, assemble_patches,
+                                   T_EF)
 
 config_file = "../config.json"  # Update with your JSON file path
 
@@ -31,6 +34,8 @@ model.to(device)
 
 
 stride = 256
+ovr = 128
+
 subB_path = "../data/testing/sublookB_neustrelitz.npy"
 slc_path = "../data/testing/tsx_hh_slc_neustrelitz.npy"
 
@@ -48,8 +53,18 @@ az_sta = 8000
 az_end = az_sta + 256 * 3
 crop2 = [rg_sta, rg_end, az_sta, az_end]
 
-data2filter = [subB_path, slc_path]
+# Debug crop
+rg_sta = 10000 + 256*3
+rg_end = rg_sta + 256
+az_sta = 8000 + 256*2
+az_end = az_sta + 256
+crop3 = [rg_sta, rg_end, az_sta, az_end]
+
+# data2filter = [subB_path, slc_path]
 crops = [crop1, crop2]
+#
+# crops = [crop3]
+data2filter = [slc_path]
 for path in data2filter:
     for crop in crops:
         rg_sta, rg_end, az_sta, az_end = crop
@@ -60,30 +75,30 @@ for path in data2filter:
 
         arr = np.load(path)
         arr = arr[rg_sta:rg_end, az_sta:az_end, 0] + 1j * arr[rg_sta:rg_end, az_sta:az_end, 1]
-
-        arr = np.abs(arr)**2
-        # vmax = np.mean(arr) * 3
-        # plt.imshow(arr, cmap="gray", vmax=vmax)
-        ovr = 128
+        arr = np.abs(arr)
+        arr = arr**2
 
         patches = create_patches_n(arr[np.newaxis,...], ovr=ovr)
-
-        aaa = mem_process_patches_with_model(patches, model, device)
-
-        nb_batch = len(aaa)
-        nb_patches_side = round(nb_batch ** 0.5)
-
-        reconstructed_image_A = assemble_patches(aaa, nb_patches_side, nb_patches_side, ovr=ovr)
-        # reconstructed_image_A = reconstruct_image_from_processed_patches(aaa, arr.shape, desc='patches SLA', stride=256)
+        patch_list = mem_process_patches_with_model(patches, model, device)
+        reconstructed_image_A = assemble_patches(patch_list, ovr=ovr)
         reconstructed_image_A = np.sqrt(reconstructed_image_A)
-
         orig_amp = np.sqrt(arr)
-        noisy_threshold= np.mean(orig_amp)*3
 
-        filename = model_result_folder + '/noisy' + str(crop)
-        # 3 * np.mean(reconstructed_image_B)
-        store_data_and_plot(orig_amp, noisy_threshold, filename)
+        noisy2plot = np.flipud(orig_amp)
+        filename = model_result_folder + '/noisy' + str(crop) + '.png'
+        imwrite(filename, threshold_and_clip(noisy2plot, noisy2plot))
 
-        filename = model_result_folder + '/clean' + str(crop)
-        # 3 * np.mean(reconstructed_image_B)
-        store_data_and_plot(reconstructed_image_A, noisy_threshold, filename)
+        rec2plot = np.flipud(reconstructed_image_A)
+        filename = model_result_folder + '/clean' + str(crop) + '.png'
+        imwrite(filename, threshold_and_clip(noisy2plot, rec2plot))
+
+        # Residuals
+        res_sl = plot_residues(noisy2plot ** 2, rec2plot ** 2, res_only=True)
+
+        # Find a homogeneous region to calculator Mean of Ratio (MoR) and variance of ratio (VoR)
+        # print("-----")
+        # print("Approach MoR:" + str(np.mean(res_sl)) + ", VoR: " + str(np.var(res_sl)))
+        filename = model_result_folder + '/residual' + str(crop) + '.png'
+        imwrite(filename, T_EF(res_sl, 0.5, 1.5, 0, 255))
+
+

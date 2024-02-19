@@ -12,11 +12,11 @@
       "learning_rate": 1e-3,
       "WEIGHT_DECAY": 0.0,
       "batch_size": 10,
-      "epochs": 20,
+      "epochs": 30,
       "ONLYTEST" :false,
       "NUMWORKERS": 16,
       "training_data_percentage": 1,
-      "CKPT": "../cnn_despeckling/mis_checkpoints/WilsonVer1_Net_mse_leaky_relu_10_20_0.001.ckpt"
+      "CKPT": "../cnn_despeckling/mis_checkpoints/WilsonVer1_Net_mse_leaky_relu_10_30_0.001-v1.ckpt"
     }
   }
   
