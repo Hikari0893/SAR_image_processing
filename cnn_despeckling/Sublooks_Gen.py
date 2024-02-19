@@ -18,11 +18,13 @@ def data_plot(im, threshold):
 
 # Loading image
 # picture = np.load('/home/tonix/Documents/Dayana/cnn_despeckling/slc_065.npy')
-picture = np.load('../data/tsx_hh_slc_neustrelitz.npy')
+picture = np.load('../data/tsx_hh_slc_enschene.npy')
 # id = 'koeln'
 # id = 'shenyang'
-id = 'bangkok'
-id = 'neustrelitz'
+# id = 'bangkok'
+# id = 'neustrelitz'
+# id = 'hamburg'
+id = 'enschene'
 
 rg_sta = 1000
 rg_end = 2000

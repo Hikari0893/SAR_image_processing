@@ -99,7 +99,7 @@ def visualize_patches(folder, num_patches=5):
     plt.show()
 
 
-output_base_folder = '../data/patches'
+output_base_folder = '../data/testing_patches'
 pattern = 'sublookA*'
 A_files = sorted(glob.glob('../data/' + pattern))
 pattern = 'sublookB*'

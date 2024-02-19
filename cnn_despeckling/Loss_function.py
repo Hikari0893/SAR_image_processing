@@ -50,8 +50,8 @@ class Loss_funct(nn.Module):
         elif select == 'co_log_likelihood_v2':
             return self.co_log_likelihood_loss_v2(X_hat, Y_reference)
 
-        elif select == 'l2_log_loss':
-            return self.l2_log_loss(X_hat, Y_reference)
+        elif select == 'l2_log':
+            return self.l2_log(X_hat, Y_reference)
 
         elif select == 'kullback_leibler':
             return F.kl_div(X_hat, Y_reference, reduction='batchmean')
@@ -110,7 +110,7 @@ class Loss_funct(nn.Module):
 
         return loss
 
-    def l2_log_loss(self, X_hat, Y_reference):
+    def l2_log(self, X_hat, Y_reference):
         if X_hat.shape != Y_reference.shape:
             raise ValueError("X_hat and Y_reference must be of the same shape")
 
