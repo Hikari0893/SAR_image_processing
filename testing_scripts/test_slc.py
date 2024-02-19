@@ -41,8 +41,11 @@ ovr = 128
 
 subB_path = "../data/testing/sublookB_neustrelitz.npy"
 slc_path = "../data/testing/tsx_hh_slc_neustrelitz.npy"
-
 id = "neustrelitz"
+
+slc_path = "../data/testing/tsx_hh_slc_hamburg.npy"
+id = "hamburg"
+
 # City crop
 rg_sta = 8000
 rg_end = rg_sta + 256 * 7

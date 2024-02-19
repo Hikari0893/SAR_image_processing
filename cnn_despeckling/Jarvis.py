@@ -272,7 +272,7 @@ class Autoencoder_Wilson_Ver1 (pl.LightningModule,NPYDataLoader):
         loss_fuct = self.loss_f(log_rk, log_bk, select = select) #The select parameter is to choose the loss function
         return loss_fuct
     
-    def training_step(self,batch, batch_idx):
+    def training_step(self, batch, batch_idx):
         loss = self.common_step(batch) 
         self.log('train_loss', loss, on_step=True, on_epoch=True, prog_bar=True, logger=True) #tensorboard logs
         return loss
