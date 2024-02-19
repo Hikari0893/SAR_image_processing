@@ -98,28 +98,10 @@ def visualize_patches(folder, num_patches=5):
         plt.title(f'Patch {i}')
     plt.show()
 
-
-output_base_folder = '../data/testing_patches'
-pattern = 'sublookA*'
-A_files = sorted(glob.glob('../data/' + pattern))
-pattern = 'sublookB*'
-B_files = sorted(glob.glob('../data/' + pattern))
-pattern = 'tsx*'
-slc_files = sorted(glob.glob('../data/' + pattern))
-
 stride = 256
+
+output_base_folder = '../data/training_patches/'
+A_files = sorted(glob.glob('../data/training/sublookA*'))
+B_files = sorted(glob.glob('../data/training/sublookB*'))
+slc_files = sorted(glob.glob('../data/training/tsx*'))
 test([A_files, B_files, slc_files], stride, output_base_folder)
-
-# plt.figure();
-# plt.imshow(np.sqrt(np.squeeze(np.load("../data/patches/General_A_Koeln/patch_0000001.npy"))), vmax=800, cmap="gray")
-# plt.figure();
-# plt.imshow(np.sqrt(np.squeeze(np.load("../data/patches/General_A_Koeln/patch_0000001.npy"))), vmax=800, cmap="gray")
-# plt.figure();
-# plt.imshow(np.sqrt(np.squeeze(np.load("../data/patches/General_A_Koeln/patch_0000002.npy"))), vmax=800, cmap="gray")
-
-# plt.figure();
-# plt.imshow(np.sqrt(np.squeeze(np.load("../data/patches/General_SLC_Koeln/patch_0000001.npy"))), vmax=800, cmap="gray")
-# plt.figure();
-# plt.imshow(np.sqrt(np.squeeze(np.load("../data/patches/General_SLC_Koeln/patch_0000001.npy"))), vmax=800, cmap="gray")
-# plt.figure();
-# plt.imshow(np.sqrt(np.squeeze(np.load("../data/patches/General_SLC_Koeln/patch_0000002.npy"))), vmax=800, cmap="gray")

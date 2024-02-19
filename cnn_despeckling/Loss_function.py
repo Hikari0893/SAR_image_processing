@@ -45,13 +45,10 @@ class Loss_funct(nn.Module):
             return F.nll_loss(X_hat, Y_reference)
         
         elif select == 'co_log_likelihood':
-            return self.co_log_likelihood_loss(X_hat, Y_reference)
+            return self.co_log_likelihood(X_hat, Y_reference)
 
-        elif select == 'co_log_likelihood_v2':
-            return self.co_log_likelihood_loss_v2(X_hat, Y_reference)
-
-        elif select == 'l2_log':
-            return self.l2_log(X_hat, Y_reference)
+        elif select == 'mse_debias':
+            return self.mse_debias(X_hat, Y_reference)
 
         elif select == 'kullback_leibler':
             return F.kl_div(X_hat, Y_reference, reduction='batchmean')
@@ -84,7 +81,7 @@ class Loss_funct(nn.Module):
         
         return loss
 
-    def co_log_likelihood_loss(self, X_hat, Y_reference):
+    def merlin_loss(self, X_hat, Y_reference):
         
         # Assuming X_hat and Y_reference are already in log scale
 
@@ -108,37 +105,6 @@ class Loss_funct(nn.Module):
         denorm = (Y_reference - X_hat) * (Max - min) + min
         loss = torch.sum(X_hat - Y_reference + torch.exp(denorm))
 
-        return loss
-
-    def l2_log(self, X_hat, Y_reference):
-        if X_hat.shape != Y_reference.shape:
-            raise ValueError("X_hat and Y_reference must be of the same shape")
-
-        loss = (1 / X_hat.size(0)) * torch.sum((X_hat - Y_reference)**2)
-        return loss
-
-    def co_log_likelihood_loss_v2(self, X_hat, Y_reference):
-
-        # Assuming X_hat and Y_reference are already in log scale
-
-        # Loss function equation
-        # L_log(X_hat, Y_reference) = sum(1/2 * X_hat + exp(2*Y_reference - X_hat))
-        """
-        Custom co-log-likelihood loss function as described in the SAR imaging paper.
-        Assumes X_hat and Y_reference are both in log-scale.
-2
-        Args:
-        X_hat (Tensor): Log-transformed predicted pixel values. (X_input -N)
-        Y_reference (Tensor): Log-transformed expected noise variance (reference values).
-
-        Returns:
-        Tensor: The computed co-log-likelihood loss.
-        """
-        # Ensure the inputs are of the same shape
-        if X_hat.shape != Y_reference.shape:
-            raise ValueError("X_hat and Y_reference must be of the same shape")
-
-
         # import matplotlib.pyplot as plt
         # import numpy as np
         # Ynpy = Y_reference[0,0,:,:].cpu().numpy()
@@ -159,6 +125,36 @@ class Loss_funct(nn.Module):
         # loss = torch.sum(X_hat - Y_reference + torch.exp(Y_reference - X_hat))
         # denorm = (Y_reference - X_hat) * (self.M - self.m) + self.m
         # loss = torch.sum(X_hat - Y_reference + torch.exp(denorm))
+        return loss
+
+    def mse_debias(self, X_hat, Y_reference):
+        if X_hat.shape != Y_reference.shape:
+            raise ValueError("X_hat and Y_reference must be of the same shape")
+
+        loss = (1 / X_hat.size(0)) * torch.mean((X_hat - Y_reference + debias)**2)
+        return loss
+
+    def co_log_likelihood(self, X_hat, Y_reference):
+
+        # Assuming X_hat and Y_reference are log-intensity images
+
+        # Loss function equation
+        # L_log(X_hat, Y_reference) = sum(X_hat - Y_reference + exp(Y_reference - X_hat))
+        """
+        Custom co-log-likelihood loss function as described in the SAR2SAR imaging paper.
+        https://ieeexplore.ieee.org/stamp/stamp.jsp?tp=&arnumber=9399231&tag=1
+
+        Args:
+        X_hat (Tensor): Log-transformed predicted pixel values. (X_input -N)
+        Y_reference (Tensor): Log-transformed expected noise variance (reference values).
+
+        Returns:
+        Tensor: The computed co-log-likelihood loss.
+        """
+        # Ensure the inputs are of the same shape
+        if X_hat.shape != Y_reference.shape:
+            raise ValueError("X_hat and Y_reference must be of the same shape")
+
         loss = (1/X_hat.size(0)) * torch.mean(X_hat - Y_reference + torch.exp(Y_reference - X_hat))
         return loss
 
