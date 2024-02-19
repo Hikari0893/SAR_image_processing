@@ -10,6 +10,9 @@ from cnn_despeckling.utils import (plot_residues,
                                    create_patches_n, assemble_patches,
                                    T_EF)
 
+from matplotlib.patches import Rectangle
+import matplotlib.pyplot as plt
+
 config_file = "../config.json"  # Update with your JSON file path
 
 # Load the global parameters from the JSON file
@@ -39,6 +42,7 @@ ovr = 128
 subB_path = "../data/testing/sublookB_neustrelitz.npy"
 slc_path = "../data/testing/tsx_hh_slc_neustrelitz.npy"
 
+id = "neustrelitz"
 # City crop
 rg_sta = 8000
 rg_end = rg_sta + 256 * 7
@@ -80,25 +84,53 @@ for path in data2filter:
 
         patches = create_patches_n(arr[np.newaxis,...], ovr=ovr)
         patch_list = mem_process_patches_with_model(patches, model, device)
-        reconstructed_image_A = assemble_patches(patch_list, ovr=ovr)
-        reconstructed_image_A = np.sqrt(reconstructed_image_A)
+        clean_int = assemble_patches(patch_list, ovr=ovr)
+        clean_amp = np.sqrt(clean_int)
         orig_amp = np.sqrt(arr)
 
         noisy2plot = np.flipud(orig_amp)
         filename = model_result_folder + '/noisy' + str(crop) + '.png'
         imwrite(filename, threshold_and_clip(noisy2plot, noisy2plot))
 
-        rec2plot = np.flipud(reconstructed_image_A)
+        amp2plot = np.flipud(clean_amp)
         filename = model_result_folder + '/clean' + str(crop) + '.png'
-        imwrite(filename, threshold_and_clip(noisy2plot, rec2plot))
+        imwrite(filename, threshold_and_clip(noisy2plot, amp2plot))
 
         # Residuals
-        res_sl = plot_residues(noisy2plot ** 2, rec2plot ** 2, res_only=True)
-
-        # Find a homogeneous region to calculator Mean of Ratio (MoR) and variance of ratio (VoR)
-        # print("-----")
-        # print("Approach MoR:" + str(np.mean(res_sl)) + ", VoR: " + str(np.var(res_sl)))
+        res_sl = plot_residues(noisy2plot ** 2, amp2plot ** 2, res_only=True)
         filename = model_result_folder + '/residual' + str(crop) + '.png'
         imwrite(filename, T_EF(res_sl, 0.5, 1.5, 0, 255))
 
+        if id == "neustrelitz" and crop == crop1:
+            green_crop = [1330, 1410, 330, 400]
+            red_crop = [320, 520, 360, 560]
+            # Create figure and axes
+            fig, ax = plt.subplots(figsize=(15, 15))
+            ax.imshow(threshold_and_clip(noisy2plot, noisy2plot), cmap="gray")
+            ax.add_patch(Rectangle((green_crop[2], orig_amp.shape[0] - green_crop[0] - 100),
+                                   100, 100,
+                                   fc='none',
+                                   ec='g',
+                                   lw=3))
+            ax.add_patch(Rectangle((red_crop[2], orig_amp.shape[0] - red_crop[0] - 200),
+                                   200, 200,
+                                   fc='none',
+                                   ec='r',
+                                   lw=3))
+            plt.axis("off")
+            filename = model_result_folder + '/crops_colored.png'
+            plt.savefig(filename, bbox_inches='tight', pad_inches=0, transparent=True)
 
+            # Calculating Mean of Ratio (MoR) and variance of ratio (VoR) for homogeneous region (green crop)
+            patch_int = clean_int[green_crop[0]:green_crop[1], green_crop[2]:green_crop[3]]
+            enl_clean = (np.mean(patch_int) ** 2) / (np.std(patch_int) ** 2)
+
+            print("-----")
+            # A mean of ratio (MoR) significantly different from one indicates, again, some radiometric distortion.
+            # Assuming MoR ~= 1, the variance of ratio (VoR) provides insight about under/oversmoothing phenomena.
+            # A VoR < 1 indicates undersmoothing, that is, part of the speckle remains in the filtered image,
+            # whereas VoR > 1 indicates oversmoothing, that is, the filter eliminates also some details of the
+            # underlying image.
+            print("Approach MoR: " + str(np.mean(res_sl[green_crop[0]:green_crop[1], green_crop[2]:green_crop[3]])) +
+                  ", VoR: " + str(np.var(res_sl[green_crop[0]:green_crop[1], green_crop[2]:green_crop[3]])))
+            print("Approach ENL: " + str(enl_clean))
