@@ -3,6 +3,7 @@ import sys
 import numpy as np
 import torch
 import torch.nn as nn
+import glob
 from torch.utils.data import Dataset, DataLoader
 import logging
 
@@ -52,7 +53,49 @@ class NPYDataset(Dataset):
         data = torch.from_numpy(data)
         
         return data
-    
+
+
+class NPYDataset_Mem(Dataset):
+    def __init__(self, data_folder, patch_size, pattern):
+        self.data_folder = data_folder
+        self.patch_size = patch_size
+        self.training_data = sorted(glob.glob(data_folder + pattern))
+        self.data = self._load_data()
+
+    def _load_data(self):
+        data = []
+        for filename in self.training_data:
+            try:
+                # Load the .npy file
+                loaded_data = np.load(filename)
+                intensity = (np.abs(loaded_data[:, :, 0] + 1j * loaded_data[:, :, 1])) ** 2
+                # Create patches from the loaded data
+                patches = self._create_patches(intensity[np.newaxis,:])
+                data.extend(patches)
+            except Exception as e:
+                logging.error(f"Error loading {filename}: {e}")
+                print(f"Error loading {filename}: {e}")
+
+        return data
+
+    def _create_patches(self, data):
+        n = self.patch_size
+        ovr = 0
+        assert n > ovr >= 0
+        s1, s2 = np.shape(data[0,...])
+        r1, r2 = (s1 - n) // (n - ovr) + 1, (s2 - n) // (n - ovr) + 1  # number of patches per column/row
+        patch_list = []
+        for i in range(r1):
+            for j in range(r2):
+                patch = data[:, i * (n - ovr):i * (n - ovr) + n, j * (n - ovr):j * (n - ovr) + n]
+                patch_list.append(patch)
+        return patch_list
+
+    def __len__(self):
+        return len(self.data)
+
+    def __getitem__(self, idx):
+        return self.data[idx]
     
 class CombinedDataset(Dataset):
     def __init__(self, dataset_A, dataset_B):
@@ -74,9 +117,14 @@ class CombinedDataset(Dataset):
 # The "only_test" mode, only one DataLoader is created for the test set.
     
 class NPYDataLoader:
-    def __init__(self, batch_size, num_workers=8, folder_A =None, folder_B = None,only_test=only_test, ratio=1):
-        self.dataset_A = NPYDataset(folder_A, ratio)
-        self.dataset_B = NPYDataset(folder_B, ratio)
+    def __init__(self, batch_size, num_workers=8, folder_A =None, folder_B = None, only_test=only_test,
+                 data_folder = None, patternA = None, patternB = None):
+        if data_folder is not None:
+            self.dataset_A = NPYDataset_Mem(data_folder, 256, patternA)
+            self.dataset_B = NPYDataset_Mem(data_folder, 256, patternB)
+        else:
+            self.dataset_A = NPYDataset(folder_A)
+            self.dataset_B = NPYDataset(folder_B)
         if only_test == False:
                 
             training_ratio   = 0.75
@@ -106,5 +154,5 @@ class NPYDataLoader:
             self.test_loader  = DataLoader(CombinedDataset(test_set_A, test_set_B), batch_size=batch_size, shuffle=False, num_workers=num_workers)
         else:
             self.test_loader  = DataLoader(CombinedDataset(self.dataset_A, self.dataset_B), batch_size=100, shuffle=False, num_workers=16)
-        
-    
+
+

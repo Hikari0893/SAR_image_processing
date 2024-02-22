@@ -3,7 +3,7 @@ import numpy as np
 from tqdm import tqdm
 from PIL import Image
 import matplotlib.pyplot as plt
-import os
+from scipy.ndimage import filters
 
 from cnn_despeckling.Jarvis import *
 
@@ -277,3 +277,20 @@ def T_EF(X, l, h, m, M):
     assert l < h and m <= M
     return (X - l) * (M - m) / (h - l) + m
 
+def hamming_window(N, alpha = 0.6):
+    """Generate a Hamming window."""
+    n = np.arange(N)
+    beta = 1-alpha
+    window = alpha - beta * np.cos(2 * np.pi * n / (N-1))
+    return window
+
+def smooth(array, box, phase=False):
+    """
+    Imitates IDL's smooth function. Can also (correctly) smooth interferometric phases with the phase=True keyword.
+    """
+    if np.iscomplexobj(array):
+        return filters.uniform_filter(array.real, box) + 1j * filters.uniform_filter(array.imag, box)
+    elif phase is True:
+        return np.angle(smooth(np.exp(1j * array), box))
+    else:
+        return filters.uniform_filter(array.real, box)

@@ -16,7 +16,7 @@
       "ONLYTEST" :false,
       "NUMWORKERS": 16,
       "training_data_percentage": 1,
-      "CKPT": "../cnn_despeckling/mis_checkpoints/WilsonVer1_Net_mse_leaky_relu_10_30_0.001-v1.ckpt"
+      "CKPT": "../cnn_despeckling/mis_checkpoints/WilsonVer1_Net_mse_leaky_relu_10_30_0.001.ckpt"
     }
   }
   

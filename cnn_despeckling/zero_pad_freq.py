@@ -1,6 +1,6 @@
 import numpy as np
 
-def zero_pad_freq(sublook, target_size, shift=0):
+def zero_pad_freq(sublook, target_size, zD=0):
     """
     Zero-pad a sublook in the frequency domain to match the target size.
     
@@ -16,14 +16,8 @@ def zero_pad_freq(sublook, target_size, shift=0):
     cols_diff = target_size[1] - sublook.shape[1]
     
     start_row = rows_diff // 2
-    start_col = cols_diff // 2 - shift // 2 - shift // 4
+    start_col = cols_diff // 2
     
     padded_sublook[start_row:start_row+sublook.shape[0], start_col:start_col+sublook.shape[1]] = sublook
-
-    # import matplotlib.pyplot as plt
-    # plt.imshow(np.abs(sublook))
-    # plt.figure()
-    # plt.imshow(np.abs(padded_sublook))
-    # plt.show()
 
     return padded_sublook

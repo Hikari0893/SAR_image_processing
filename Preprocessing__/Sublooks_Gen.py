@@ -13,21 +13,28 @@ from Joint_Plots import calculate_1D_spectrum_joint
 from Hist import display_histogram
 from display_1D_spectrum_norm import display_1D_spectrum_norm
 
+def get_ovr(arr, axis=1):
+    fft_img = fftshift(fft(arr, axis=axis))
+    M = fft_img.shape[1]
+    inverse_hamming = 1 / hamming_window(M)
+    fft_img = fft_img * inverse_hamming[np.newaxis, :]
+    shift = np.argmax(np.gradient(gaussian_filter(calculate_1D_spectrum_joint(fft_img), sigma=10)))
+    return shift/M
+
 # Loading image
-picture = np.load('../data/converted_image.npy')
+picture = np.load('../data/training/tsx_hh_slc_crop.npy')
 # rows = range lines (axis0), columns = azimuth lines (axis1)
 
 rg_sta = 1000
 rg_end = 4000
 az_sta = 1000
 az_end = 4000
-crop = [rg_sta, rg_end, az_sta, az_end]
 # Reconstruct the complex image from its real and imaginary parts.
 
 # amp = abs(picture[rg_sta:rg_end, az_sta:az_end, 0] + 1j * picture[rg_sta:rg_end, az_sta:az_end, 1])
 # plt.imshow(amp, vmax=800)
 
-debug = False
+debug = True
 full_image = True
 if full_image:
     complex_image = picture[:, :, 0] + 1j * picture[: ,: , 1]
@@ -45,13 +52,19 @@ SIZE = (ROWS,COLUMNS)
 
 # Applying FFT in either range (frequency domain) or azimuth (Doppler frequency domain) and FFTshift
 fft_img = fftshift(fft(complex_image,axis=1))
+
+# Returns shift multiplier
+shift = get_ovr(complex_image[0:1000,0:1000])
+pix_shift = int(shift * SIZE[1])
+
+fft_img = fft_img[:,pix_shift:SIZE[1]-pix_shift]
 np.save('abs_complex.npy', np.abs(complex_image))
 
 # Display the 1D spectrum
 intermediate_spectra.append(calculate_1D_spectrum_joint(fft_img))
 if debug:
     display_1D_spectrum_norm(fft_img, 'Average spectrum across azimuth')
-    display_histogram(fft_img, 'Average spectrum across azimuth')
+    # display_histogram(fft_img, 'Average spectrum across azimuth')
 
 #Free memory
 del complex_image
@@ -63,7 +76,7 @@ inverse_hamming = 1 / hamming_window(M)
 fft_img = fft_img * inverse_hamming[np.newaxis, :]
 
 if debug:
-    display_histogram(fft_img, 'After Inverse Hamming')
+    # display_histogram(fft_img, 'After Inverse Hamming')
     #Display spectrum in 1D after de-Hamming applied
     display_1D_spectrum_norm(fft_img, 'After Inverse Hamming')
 
@@ -84,47 +97,36 @@ if debug:
 intermediate_spectra.append(calculate_1D_spectrum_joint(a))
 intermediate_spectra.append(calculate_1D_spectrum_joint(b))
 
-a_shift = np.argmax(np.gradient(gaussian_filter(calculate_1D_spectrum_joint(a), sigma=10)))
-b_shift = np.argmin(np.gradient(gaussian_filter(calculate_1D_spectrum_joint(b), sigma=10)))
-
 # display_histogram(a, 'Sublook A Before Hamming')
 # display_histogram(b, 'Sublook B Before Hamming')
 
 #Free memory
 del fft_img
 
-# 0-padding to preserve image size
-a_padded = zero_pad_freq(a, SIZE, a_shift)
-b_padded = zero_pad_freq(b, SIZE, -a_shift)
-
-if debug:
-    # Display spectrum for each sublook after 0-padding
-    display_1D_spectrum_norm(a_padded, 'Sublook A 0-padding')
-    display_1D_spectrum_norm(b_padded, 'Sublook B 0-padding')
-    display_histogram(a_padded, 'Sublook A 0-padding')
-    display_histogram(b_padded, 'Sublook B 0-padding')
-
-intermediate_spectra.append(calculate_1D_spectrum_joint(a_padded))
-intermediate_spectra.append(calculate_1D_spectrum_joint(b_padded))
-
-
-#Free memory
-del a,b
-
-sections = [a_padded, b_padded]
-
-#Free memory
-del a_padded, b_padded
-
+sections = [a, b]
+padded = []
 # Apply Hamming window to each section
 for section in sections:
     M_section = section.shape[1]
     hamming_win = hamming_window(M_section)
     # for col in range(section.shape[0]):
     #     section[col] *= hamming_win
+    padded.append(section * hamming_win[np.newaxis, :])
 
-    section = section * hamming_win[np.newaxis, :]
+# 0-padding to preserve image size
+a_padded = zero_pad_freq(padded[0], SIZE)
+b_padded = zero_pad_freq(padded[1], SIZE)
 
+sections = [a_padded, b_padded]
+if debug:
+    # Display spectrum for each sublook after 0-padding
+    display_1D_spectrum_norm(a_padded, 'Sublook A 0-padding')
+    display_1D_spectrum_norm(b_padded, 'Sublook B 0-padding')
+    # display_histogram(a_padded, 'Sublook A 0-padding')
+    # display_histogram(b_padded, 'Sublook B 0-padding')
+
+intermediate_spectra.append(calculate_1D_spectrum_joint(a_padded))
+intermediate_spectra.append(calculate_1D_spectrum_joint(b_padded))
 
 np.save('spatial_sect1.npy', sections[0])
 np.save('spatial_sect2.npy', sections[1])
@@ -136,8 +138,8 @@ if debug:
     # Display spectrum for each sublook after Hamming
     display_1D_spectrum_norm(np.load('spatial_sect1.npy', mmap_mode= 'r'), 'Sublook A_padd After Hamming')
     display_1D_spectrum_norm(np.load('spatial_sect2.npy', mmap_mode= 'r'), 'Sublook A_padd After Hamming')
-    display_histogram(np.load('spatial_sect1.npy', mmap_mode= 'r'), 'Sublook A_padd After Hamming')
-    display_histogram(np.load('spatial_sect2.npy', mmap_mode= 'r'), 'Sublook B_padd After Hamming')
+    # display_histogram(np.load('spatial_sect1.npy', mmap_mode= 'r'), 'Sublook A_padd After Hamming')
+    # display_histogram(np.load('spatial_sect2.npy', mmap_mode= 'r'), 'Sublook B_padd After Hamming')
 
 intermediate_spectra.append(calculate_1D_spectrum_joint(np.load('spatial_sect1.npy', mmap_mode= 'r')))
 intermediate_spectra.append(calculate_1D_spectrum_joint(np.load('spatial_sect2.npy', mmap_mode= 'r')))

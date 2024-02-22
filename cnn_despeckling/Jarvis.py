@@ -47,10 +47,15 @@ input_folder_B = global_parameters['global_parameters']['REFERENCE_FOLDER']
 ckpt_path = global_parameters['global_parameters']['CKPT']
 ratio = global_parameters['global_parameters']['training_data_percentage']
 
+data_folder = "/ste/usr/amao_jo/estudiantes/dayana/SAR_image_processing/data/training/"
+patternA = "sublookA*"
+patternB = "sublookB*"
+suffix = "rgSL_alp60"
+
 # Save checkpoints every n epochs
 checkpoint_callback = ModelCheckpoint(
         dirpath ='mis_checkpoints',
-        filename =f"WilsonVer1_Net_{select}_{function}_{batch_size}_{epochs}_{learning_rate}",
+        filename =f"WilsonVer1_Net_{select}_{function}_{batch_size}_{epochs}_{learning_rate}_{suffix}",
         save_top_k = -1,
         every_n_epochs = 1
     )
@@ -206,8 +211,9 @@ class my_Unet(nn.Module):
 class Autoencoder_Wilson_Ver1 (pl.LightningModule,NPYDataLoader):
     def __init__(self, width = 256, height = 256):
         pl.LightningModule.__init__(self)
-        NPYDataLoader.__init__(self, batch_size=batch_size, num_workers=num_workers, 
-                               folder_A = input_folder_A, folder_B = input_folder_B, only_test=only_test, ratio=ratio)
+        NPYDataLoader.__init__(self, batch_size=batch_size, num_workers=num_workers,
+                               folder_A = input_folder_A, folder_B = input_folder_B, only_test=only_test,
+                               data_folder = data_folder, patternA = patternA, patternB = patternB)
         self.lr = learning_rate
         self.loss_f = Loss_funct()
         
@@ -258,8 +264,6 @@ class Autoencoder_Wilson_Ver1 (pl.LightningModule,NPYDataLoader):
         # plt.figure()
         # plt.imshow((Xnpy)**(1/2), cmap="gray", vmax=300)
         # plt.show()
-        #
-        # a=2
 
         # neural network (rk is the denoised image, in the signal domain)
         rk = self(ak)

@@ -38,7 +38,7 @@ def load_sar_images(filelist, num_channels=2):
     return [load_image(file) for file in filelist if load_image(file) is not None]
 
 
-def test(sublooks, stride, output_base_folder, pat_size=256):
+def create_patches(sublooks, stride, output_base_folder, pat_size=256):
     if not os.path.exists(output_base_folder):
         os.makedirs(output_base_folder)
 
@@ -98,10 +98,13 @@ def visualize_patches(folder, num_patches=5):
         plt.title(f'Patch {i}')
     plt.show()
 
-stride = 256
 
-output_base_folder = '../data/training_patches/'
-A_files = sorted(glob.glob('../data/training/sublookA*'))
-B_files = sorted(glob.glob('../data/training/sublookB*'))
-slc_files = sorted(glob.glob('../data/training/tsx*'))
-test([A_files, B_files, slc_files], stride, output_base_folder)
+# stride = 256
+#
+# output_base_folder = '../data/training_patches/'
+# A_files = sorted(glob.glob('../data/training/sublookA*'))
+# B_files = sorted(glob.glob('../data/training/sublookB*'))
+# test([A_files, B_files], stride, output_base_folder)
+
+# slc_files = sorted(glob.glob('../data/training/tsx*'))
+# test([A_files, B_files, slc_files], stride, output_base_folder)
