@@ -50,12 +50,14 @@ ratio = global_parameters['global_parameters']['training_data_percentage']
 data_folder = "/ste/usr/amao_jo/estudiantes/dayana/SAR_image_processing/data/training/"
 patternA = "sublookA*"
 patternB = "sublookB*"
-suffix = "rgSL_alp60"
+suffix = "azSL_sa60"
+
+model_id = f"WilsonVer1_Net_{select}_{function}_{batch_size}_{epochs}_{learning_rate}_{suffix}"
 
 # Save checkpoints every n epochs
 checkpoint_callback = ModelCheckpoint(
-        dirpath ='mis_checkpoints',
-        filename =f"WilsonVer1_Net_{select}_{function}_{batch_size}_{epochs}_{learning_rate}_{suffix}",
+        dirpath ='model_checkpoints',
+        filename = model_id,
         save_top_k = -1,
         every_n_epochs = 1
     )
@@ -326,8 +328,7 @@ class Autoencoder_Wilson_Ver1 (pl.LightningModule,NPYDataLoader):
     
 if __name__ == '__main__':
     
-    logger = TensorBoardLogger("tb_logs", name=f"Wilson_Net_{select}_{function}_{batch_size}_{epochs}")
-    
+    logger = TensorBoardLogger("tb_logs", name=model_id)
     trainer = Trainer(logger=logger, fast_dev_run=False, accelerator='gpu',
                       callbacks=[MyProgressBar(), checkpoint_callback],
                       max_epochs=epochs)

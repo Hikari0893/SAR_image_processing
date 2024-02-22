@@ -4,6 +4,9 @@ from tqdm import tqdm
 from PIL import Image
 import matplotlib.pyplot as plt
 from scipy.ndimage import filters
+from scipy.ndimage import gaussian_filter
+from Preprocessing__.Joint_Plots import calculate_1D_spectrum_joint
+from scipy.fft import fft, fftshift, ifft, ifftshift
 
 from cnn_despeckling.Jarvis import *
 
@@ -12,6 +15,50 @@ L = 1
 M = 10.089038980848645
 m = -1.429329123112601
 c = (special.psi(L) - np.log(L))
+
+def get_ovr(arr, fsar=False, sigma=6):
+    if fsar:
+        fft_img = fft(arr, axis=1)
+    else:
+        fft_img = fftshift(fft(arr, axis=1), axes=1)
+
+    M = fft_img.shape[1]
+    grad = np.gradient(gaussian_filter(calculate_1D_spectrum_joint(fft_img), sigma=sigma))
+    zD = np.argmax(gaussian_filter(calculate_1D_spectrum_joint(fft_img), sigma=0))
+    # grad2 = np.gradient(grad)
+    start = np.argmax(grad)
+    end = np.argmin(grad)
+    return start/M, end/M, zD/M
+
+def analyse_spectra(arr, fsar=False):
+    if fsar:
+        fft_img = fft(arr, axis=1)
+    else:
+        fft_img = fftshift(fft(arr, axis=1), axes=1)
+
+    # Choose a threshold (for example, 10% of the maximum magnitude)
+    spectra = calculate_1D_spectrum_joint(fft_img)
+    threshold = 0.07 * np.max(np.abs(gaussian_filter(spectra, sigma=3)))
+
+    # Find start frequency
+    start_freq = None
+    for freq_index, magnitude in enumerate(spectra):
+        if magnitude > threshold:
+            start_freq = freq_index
+            break
+
+    # Find end frequency
+    end_freq = None
+    for freq_index in range(len(spectra) - 1, 0, -1):
+        magnitude = spectra[freq_index]
+        if magnitude > threshold:
+            end_freq = freq_index
+            break
+
+    M = fft_img.shape[1]
+    zD = np.argmax(gaussian_filter(calculate_1D_spectrum_joint(fft_img), sigma=0))
+
+    return start_freq/M, end_freq/M, zD/M
 
 def normalize(batch):
     # batch[batch==0]=1e-2

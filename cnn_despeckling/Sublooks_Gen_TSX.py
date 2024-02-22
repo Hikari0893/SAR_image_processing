@@ -1,26 +1,10 @@
 import numpy as np
-import glob
 from scipy.fft import fft, fftshift, ifft, ifftshift
-from scipy.ndimage import gaussian_filter
 
 from cnn_despeckling.utils import hamming_window
 from Preprocessing__.Joint_Plots import calculate_1D_spectrum_joint
 from cnn_despeckling.Patches import create_patches
-
-def get_ovr(arr):
-    fft_img = fftshift(fft(arr, axis=1))
-    M = fft_img.shape[1]
-    grad = np.gradient(gaussian_filter(calculate_1D_spectrum_joint(fft_img), sigma=6))
-    zD = np.argmax(gaussian_filter(calculate_1D_spectrum_joint(fft_img), sigma=0))
-    start = np.argmax(grad)
-    end = np.argmin(grad)
-    return start/M, end/M, zD/M
-
-def data_plot(im, threshold):
-    im = np.clip(im, 0, threshold)
-    im = im / threshold * 255
-    
-    return im
+from cnn_despeckling.utils import get_ovr, analyse_spectra
 
 rg_sta = 1000
 rg_end = 3000
@@ -42,8 +26,10 @@ full_image = True
 ids = ['koeln', 'shenyang', 'bangkok', 'enschene']
 
 # rg = 0, az = 1
-axis = 0
+axis = 1
 alpha = 0.6
+
+sub_alpha = 0.6
 
 for id in ids:
     SIZE = []
@@ -62,8 +48,8 @@ for id in ids:
 
     # Applying FFT by row and FFTshift
     fft_img = fftshift(fft(complex_image, axis=1), axes=1)
+    start, end, zD = analyse_spectra(complex_image[0:1000, 0:1000])
 
-    start, end, zD = get_ovr(complex_image[0:1000, 0:1000])
     start = int(start * SIZE[1])
     end = int(end * SIZE[1])
     zD = int(zD * SIZE[1])
@@ -90,11 +76,15 @@ for id in ids:
     a_padded = np.copy(a)
     b_padded = np.copy(b)
 
-    hamming_win = hamming_window(zD - start, alpha=alpha)
+    hamming_win = hamming_window(zD - start, alpha=sub_alpha)
     a_padded[:, start:zD] *= hamming_win
 
-    hamming_win = hamming_window(end - zD, alpha=alpha)
+    hamming_win = hamming_window(end - zD, alpha=sub_alpha)
     b_padded[:, zD:end] *= hamming_win
+
+    # # Half spacing test
+    # a_padded = a_padded[:, 0:zD]
+    # b_padded = b_padded[:, zD:-1]
 
     print("Done with zero padding and Hamming processing...")
 
@@ -114,6 +104,20 @@ for id in ids:
                                                                   axis=2))
 
     print("Done with id: " + str(id))
+
+
+    # import matplotlib.pyplot as plt
+    # plt.figure()
+    # plt.imshow(np.abs(spatial_sectA[0:300, 100:330]), vmax=300, cmap="gray")
+    # plt.figure()
+    # plt.imshow(np.abs(spatial_sectB[0:300, 100:330]), vmax=300, cmap="gray")
+    # plt.figure()
+    # plt.imshow(np.abs(complex_image[0:300, 100:330]), vmax=300, cmap="gray")
+    #
+    # plt.plot(calculate_1D_spectrum_joint(a_padded))
+    # plt.plot(calculate_1D_spectrum_joint(b_padded))
+    # plt.plot(calculate_1D_spectrum_joint(fft_img))
+
     print("-----")
 
 
