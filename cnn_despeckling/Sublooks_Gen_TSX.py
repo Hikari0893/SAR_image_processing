@@ -26,7 +26,7 @@ full_image = True
 ids = ['koeln', 'shenyang', 'bangkok', 'enschene']
 
 # rg = 0, az = 1
-axis = 1
+axis = 0
 alpha = 0.6
 
 sub_alpha = 0.6

@@ -50,7 +50,7 @@ ratio = global_parameters['global_parameters']['training_data_percentage']
 data_folder = "/ste/usr/amao_jo/estudiantes/dayana/SAR_image_processing/data/training/"
 patternA = "sublookA*"
 patternB = "sublookB*"
-suffix = "azSL_sa60"
+suffix = "azSL_sa95"
 
 model_id = f"WilsonVer1_Net_{select}_{function}_{batch_size}_{epochs}_{learning_rate}_{suffix}"
 

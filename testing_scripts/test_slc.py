@@ -1,6 +1,6 @@
 from pathlib import Path
 import os
-os.environ['CUDA_VISIBLE_DEVICES'] = '0'  # '1,3,4,5,6,7' for 12, '0','1','2','3' on 21
+os.environ['CUDA_VISIBLE_DEVICES'] = '1'  # '1,3,4,5,6,7' for 12, '0','1','2','3' on 21
 from cv2 import imwrite
 
 from cnn_despeckling.Jarvis import *
@@ -26,9 +26,6 @@ checkpoint = str(global_parameters['global_parameters']['CKPT'])
 patch_folder_A = global_parameters['global_parameters']['INPUT_FOLDER']
 patch_folder_B = global_parameters['global_parameters']['REFERENCE_FOLDER']
 num_workers = int(global_parameters['global_parameters']['NUMWORKERS'])
-
-
-
 
 stride = 256
 ovr = 128
@@ -66,11 +63,11 @@ crops = [crop1, crop2]
 #
 # crops = [crop3]
 
-dir = "../cnn_despeckling/mis_checkpoints/"
+dir = "../cnn_despeckling/model_checkpoints/"
 models = ['WilsonVer1_Net_mse_leaky_relu_10_30_0.001_oldPre.ckpt',
           'WilsonVer1_Net_mse_leaky_relu_10_30_0.001.ckpt']
 
-models = ['WilsonVer1_Net_mse_leaky_relu_10_30_0.001_rgSL_alp60.ckpt']
+models = ['WilsonVer1_Net_mse_leaky_relu_10_30_0.001_azSL_sa95.ckpt']
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 # data2filter = [subB_path, slc_path]
@@ -143,7 +140,9 @@ for checkpoint in models:
                 # A VoR < 1 indicates undersmoothing, that is, part of the speckle remains in the filtered image,
                 # whereas VoR > 1 indicates oversmoothing, that is, the filter eliminates also some details of the
                 # underlying image.
-                # https://ieeexplore.ieee.org/stamp/stamp.jsp?tp=&arnumber=6515372&tag=1
+                # https://ieeexplore.ieee.org/stamp/stamp.jsp?tp=&arnumber=6515372
+                res_sl = plot_residues(orig_amp ** 2, clean_amp ** 2, res_only=True)
+
                 print("Approach MoR: " + str(np.mean(res_sl[green_crop[0]:green_crop[1], green_crop[2]:green_crop[3]])) +
                       ", VoR: " + str(np.var(res_sl[green_crop[0]:green_crop[1], green_crop[2]:green_crop[3]])))
                 print("Approach ENL: " + str(enl_clean))
