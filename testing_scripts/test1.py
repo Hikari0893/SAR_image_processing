@@ -5,7 +5,7 @@ from scipy.fft import fft,fftshift, ifft, ifftshift, fft2
 SLICE_NUMBER = 500
 
 # Load SAR image
-picture = np.load('converted_image.npy')
+picture = np.load('tsx_hh_slc_koeln.npy')
 #plt.imshow(picture[:,:,1])
 #plt.show()
 

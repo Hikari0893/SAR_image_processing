@@ -1,0 +1,22 @@
+{
+    "global_parameters": {
+      "L": 1,
+      "M": 10.089038980848645,
+      "m":-1.429329123112601,
+      "MODEL" : "Autoencoder_Wilson_Ver1",
+      "ARCHIVE": " Jarvis",
+      "INPUT_FOLDER": "../data/training_patches/General_A",
+      "FUNCTION": "leaky_relu",
+      "REFERENCE_FOLDER": "../data/training_patches/General_B",
+      "SELECT": "mse",
+      "learning_rate": 1e-3,
+      "WEIGHT_DECAY": 0.0,
+      "batch_size": 10,
+      "epochs": 30,
+      "ONLYTEST" :false,
+      "NUMWORKERS": 16,
+      "training_data_percentage": 1,
+      "CKPT": "../cnn_despeckling/mis_checkpoints/WilsonVer1_Net_mse_leaky_relu_10_30_0.001.ckpt"
+    }
+  }
+  

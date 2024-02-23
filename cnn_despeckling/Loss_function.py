@@ -3,13 +3,18 @@ import torch.nn as nn
 import torch.nn.functional as F
 import json
 # Load global parameters from JSON file
-config_file = "//"  # Update with your JSON file path
+config_file = "../config.json"  # Update with your JSON file path
 with open(config_file, 'r') as json_file:
     global_parameters = json.load(json_file)
 
 # Extract relevant parameters
 Max = global_parameters['global_parameters']['M']
 min = global_parameters['global_parameters']['m']
+# Extract relevant parameters
+L = int(global_parameters['global_parameters']['L'])
+from scipy import special
+import numpy as np
+debias = special.psi(L) - np.log(L)
 
 class Loss_funct(nn.Module):
     def __init__(self):
@@ -40,8 +45,11 @@ class Loss_funct(nn.Module):
             return F.nll_loss(X_hat, Y_reference)
         
         elif select == 'co_log_likelihood':
-            return self.co_log_likelihood_loss(X_hat, Y_reference)
-        
+            return self.co_log_likelihood(X_hat, Y_reference)
+
+        elif select == 'mse_debias':
+            return self.mse_debias(X_hat, Y_reference)
+
         elif select == 'kullback_leibler':
             return F.kl_div(X_hat, Y_reference, reduction='batchmean')
         
@@ -73,7 +81,7 @@ class Loss_funct(nn.Module):
         
         return loss
 
-    def co_log_likelihood_loss(self, X_hat, Y_reference):
+    def merlin_loss(self, X_hat, Y_reference):
         
         # Assuming X_hat and Y_reference are already in log scale
 
@@ -94,16 +102,66 @@ class Loss_funct(nn.Module):
         if X_hat.shape != Y_reference.shape:
             raise ValueError("X_hat and Y_reference must be of the same shape")
 
-        loss = torch.mean(0.5 * X_hat + (Y_reference/X_hat))
+        denorm = (Y_reference - X_hat) * (Max - min) + min
+        loss = torch.sum(X_hat - Y_reference + torch.exp(denorm))
 
+        # import matplotlib.pyplot as plt
+        # import numpy as np
+        # Ynpy = Y_reference[0,0,:,:].cpu().numpy()
+        # Xnpy = X_hat[0,0,:,:].cpu().numpy()
+        #
+        # plt.imshow(np.exp(Ynpy)**(1/2), cmap="gray", vmax=800)
+        # plt.figure()
+        # plt.imshow(np.exp(Xnpy)**(1/2), cmap="gray", vmax=800)
+        # plt.show()
+        #
+        # ratio = np.divide(np.exp(Xnpy) + 1e-10, (np.exp(Ynpy)) + 1e-10)
+        # ratio = np.clip(ratio, 0, 4)
+        # plt.figure()
+        # plt.imshow(ratio, cmap="gray", vmax=4)
+        # plt.show()
+        # loss = torch.mean(X_hat + torch.exp(Y_reference - X_hat))
+
+        # loss = torch.sum(X_hat - Y_reference + torch.exp(Y_reference - X_hat))
+        # denorm = (Y_reference - X_hat) * (self.M - self.m) + self.m
+        # loss = torch.sum(X_hat - Y_reference + torch.exp(denorm))
         return loss
-    
+
+    def mse_debias(self, X_hat, Y_reference):
+        if X_hat.shape != Y_reference.shape:
+            raise ValueError("X_hat and Y_reference must be of the same shape")
+
+        loss = (1 / X_hat.size(0)) * torch.mean((X_hat - Y_reference + debias)**2)
+        return loss
+
+    def co_log_likelihood(self, X_hat, Y_reference):
+
+        # Assuming X_hat and Y_reference are log-intensity images
+
+        # Loss function equation
+        # L_log(X_hat, Y_reference) = sum(X_hat - Y_reference + exp(Y_reference - X_hat))
+        """
+        Custom co-log-likelihood loss function as described in the SAR2SAR imaging paper.
+        https://ieeexplore.ieee.org/stamp/stamp.jsp?tp=&arnumber=9399231&tag=1
+
+        Args:
+        X_hat (Tensor): Log-transformed predicted pixel values. (X_input -N)
+        Y_reference (Tensor): Log-transformed expected noise variance (reference values).
+
+        Returns:
+        Tensor: The computed co-log-likelihood loss.
+        """
+        # Ensure the inputs are of the same shape
+        if X_hat.shape != Y_reference.shape:
+            raise ValueError("X_hat and Y_reference must be of the same shape")
+
+        loss = (1/X_hat.size(0)) * torch.mean(X_hat - Y_reference + torch.exp(Y_reference - X_hat))
+        return loss
+
     def JD_div(self, X_hat, Y_reference):
         
         log_data_X = X_hat * (Max- min) + min
         log_data_Y = Y_reference * (Max- min) + min
-        
-        
         
         p = F.softmax(log_data_X, dim = 1 )
         q = F.softmax (log_data_Y, dim = 1)

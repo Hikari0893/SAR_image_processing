@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 # Given loading code
 LOWER_LIM = 4500
 UPPER_LIMT = 5000
-picture = np.load('converted_image.npy')
+picture = np.load('tsx_hh_slc_koeln.npy')
 complex_image = picture[LOWER_LIM:UPPER_LIMT, LOWER_LIM:UPPER_LIMT, 0] + 1j * picture[LOWER_LIM: UPPER_LIMT, LOWER_LIM:UPPER_LIMT, 1]
 
 # 1. Transform to frequency domain

@@ -1,32 +1,31 @@
 import os
 import sys
-from typing import Any
-import matplotlib.pyplot as plt
 #Trainer class
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import TensorBoardLogger
 #look into progress bar
-from pytorch_lightning.callbacks import TQDMProgressBar
-from pytorch_lightning.callbacks import ModelCheckpoint
-#from pytorch_lightning.tuner import Tuner
-
+from pytorch_lightning.callbacks import TQDMProgressBar, ModelCheckpoint
 import pytorch_lightning as pl
-import torch
-from torch.optim.lr_scheduler import ReduceLROnPlateau
-import torch.nn as nn
-import torch.nn.functional as F
-import json
+import torch.optim as optim
+from torch.optim import lr_scheduler
 
+from cnn_despeckling.Dataloader_class import NPYDataLoader
+from cnn_despeckling.Loss_function import *
+from cnn_despeckling.Activation_functions import *
 
-from Dataloader_class import NPYDataLoader
-from Loss_function import *
-from Activation_functions import *
+os.environ[
+    'TF_CPP_MIN_LOG_LEVEL'] = '1'  # KEEP THIS BEFOR TF IMPORT and see tf.get_looger below, To disable informations, else '0' = DEBUG, '1' = INFO, '2' = WARNING, '3' = ERROR
+os.environ['CUDA_DEVICE_ORDER'] = 'PCI_BUS_ID'
+os.environ['CUDA_VISIBLE_DEVICES'] = '0'  # '1,3,4,5,6,7' for 12, '0','1','2','3' on 21
+
+torch.set_float32_matmul_precision('medium')
 
 main_path = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, main_path+"/../")
 
 # Load global parameters from JSON file
-config_file = "//"  # Update with your JSON file path
+config_file = "../config.json"  # Update with your JSON file path
+
 with open(config_file, 'r') as json_file:
     global_parameters = json.load(json_file)
 
@@ -34,6 +33,8 @@ with open(config_file, 'r') as json_file:
 L = int(global_parameters['global_parameters']['L'])
 M = float(global_parameters['global_parameters']['M'])
 m = float(global_parameters['global_parameters']['m'])
+c = (1 / 2) * (special.psi(L) - np.log(L))
+
 select = global_parameters['global_parameters']['SELECT'] #To select the activation function
 function = global_parameters['global_parameters']['FUNCTION'] #Loss function
 learning_rate = float(global_parameters['global_parameters']['learning_rate'])
@@ -43,16 +44,42 @@ only_test = bool(global_parameters['global_parameters']['ONLYTEST'])
 num_workers = int(global_parameters['global_parameters']['NUMWORKERS'])
 input_folder_A = global_parameters['global_parameters']['INPUT_FOLDER']
 input_folder_B = global_parameters['global_parameters']['REFERENCE_FOLDER']  
-ckpt_path = global_parameters['global_parameters']['CKPT'] 
+ckpt_path = global_parameters['global_parameters']['CKPT']
+ratio = global_parameters['global_parameters']['training_data_percentage']
+
+data_folder = "/ste/usr/amao_jo/estudiantes/dayana/SAR_image_processing/data/training/"
+patternA = "sublookA*"
+patternB = "sublookB*"
+suffix = "azSL_sa95"
+
+model_id = f"WilsonVer1_Net_{select}_{function}_{batch_size}_{epochs}_{learning_rate}_{suffix}"
 
 # Save checkpoints every n epochs
 checkpoint_callback = ModelCheckpoint(
-        dirpath ='mis_checkpoints',
-        filename =f"WilsonVer1_Net_{select}_{function}_{batch_size}_{epochs}",
+        dirpath ='model_checkpoints',
+        filename = model_id,
         save_top_k = -1,
         every_n_epochs = 1
     )
 
+class MyProgressBar(TQDMProgressBar):
+    def init_validation_tqdm(self):
+        bar = super().init_validation_tqdm()
+        if not sys.stdout.isatty():
+            bar.disable = True
+        return bar
+
+    def init_predict_tqdm(self):
+        bar = super().init_predict_tqdm()
+        if not sys.stdout.isatty():
+            bar.disable = True
+        return bar
+
+    def init_test_tqdm(self):
+        bar = super().init_test_tqdm()
+        if not sys.stdout.isatty():
+            bar.disable = True
+        return bar
 
 class my_Unet(nn.Module):
     def __init__(self, width = 256, hight = 256):
@@ -123,7 +150,8 @@ class my_Unet(nn.Module):
     def forward (self, input):
         # Encoder
          # (32, 1, 256, 256)
-        encoder_0 =self.activation_funct(self.enc_conv0(input), function) # (Batch_size, 32, 256, 256)
+
+        encoder_0 = self.activation_funct(self.enc_conv0(input), function) # (Batch_size, 32, 256, 256)
         skip = [encoder_0]
         
         encoder_1 = self.activation_funct(self.enc_pool1(self.enc_bn1(self.enc_conv1(encoder_0))), function) # (Batch_size, 64, 128, 128)
@@ -146,7 +174,6 @@ class my_Unet(nn.Module):
         encoder_6 = encoder_6.view(encoder_6.size(0), -1)
         fc1_ecoder = self.activation_funct(self.fc1_encoder(encoder_6), function)
         fc2_encoder = self.activation_funct(self.fc2_encoder(fc1_ecoder), function)
-        
 
         # ... continue forward pass through additional encoder layers
 
@@ -184,53 +211,74 @@ class my_Unet(nn.Module):
     
     
 class Autoencoder_Wilson_Ver1 (pl.LightningModule,NPYDataLoader):
-    def __init__(self, width = 256, hight = 256):
+    def __init__(self, width = 256, height = 256):
         pl.LightningModule.__init__(self)
-        NPYDataLoader.__init__(self, batch_size=batch_size, num_workers=num_workers, 
-                               folder_A = input_folder_A, folder_B = input_folder_B, only_test=only_test)
+        NPYDataLoader.__init__(self, batch_size=batch_size, num_workers=num_workers,
+                               folder_A = input_folder_A, folder_B = input_folder_B, only_test=only_test,
+                               data_folder = data_folder, patternA = patternA, patternB = patternB)
         self.lr = learning_rate
         self.loss_f = Loss_funct()
         
-        self.Net    = my_Unet()
+        self.Net = my_Unet()
         # No additional layers needed here, as there is no processing, for now
-        
+
+    def configure_optimizers(self):
+        optimizer = optim.Adam(self.parameters(), lr=self.lr)
+        scheduler = {
+            'scheduler': lr_scheduler.MultiStepLR(optimizer, milestones=[5, 20], gamma=0.1),
+            'interval': 'epoch',  # Adjust the learning rate at the end of each epoch
+        }
+        return [optimizer], [scheduler]
+
     def forward (self, input):
         
         # Simply return the input as is
         return self.Net(input)
     
-    def configure_optimizers(self):
-        return torch.optim.Adam(self.parameters(), lr=  self.lr)
-    
-    def normalize(self,batch):
+    def normalize(self, batch):
         #remove this after dataset
         self.M  = M
         self.m  = m
-        normalize     = (torch.log(batch + 1e-7) - 2*m) /(2*(M - m))
-        return normalize
-    
+        return (torch.log(batch + 1e-7) - 2*self.m)/(2*(self.M - self.m))
+
+    # Not used given the architecture...
     def denormalize(self,normalized_data, Max, min):
-        
         log_data = normalized_data * (Max - min) + min
         original_data = torch.exp(log_data) - 1e-7
         return original_data
-    
+
     def common_step(self,batch):
         # This defines how to handle a training step
-        X_input, Y_reference = batch
-        X_input = self.normalize(X_input)
-        Y_reference = self.normalize(Y_reference)
-        Y_denormalized = Y_reference*(self.M-self.m) + self.m
-        
-        #neuronal network
-        X_hat = self(X_input)
-        X_hdenormalized =  X_hat*(self.M-self.m) + self.m
-        
+        # If we define the input pair as (ak,bk) and output as rk
+        # These are the sublook(a,b) intensities
+        x, x_true = batch
+
+        # We normalize sublook_a
+        ak = self.normalize(x)
+        bk = self.normalize(x_true)
+
+        # import matplotlib.pyplot as plt
+        # import numpy as np
+        # Ynpy = x[0,0,:,:].cpu().numpy()
+        # Xnpy = x_true[0,0,:,:].cpu().numpy()
+        #
+        # plt.imshow((Ynpy)**(1/2), cmap="gray", vmax=300)
+        # plt.figure()
+        # plt.imshow((Xnpy)**(1/2), cmap="gray", vmax=300)
+        # plt.show()
+
+        # neural network (rk is the denoised image, in the signal domain)
+        rk = self(ak)
+
+        # Denormalizing bk and rk, but still in log domain
+        log_bk = 2 * bk * (self.M - self.m) + self.m
+        log_rk = 2 * rk * (self.M - self.m) + self.m
+
         #loss function
-        loss_fuct = self.loss_f(X_hdenormalized, Y_denormalized, select = select) #The select parameter is to choose the loss function
+        loss_fuct = self.loss_f(log_rk, log_bk, select = select) #The select parameter is to choose the loss function
         return loss_fuct
     
-    def training_step(self,batch, batch_idx):
+    def training_step(self, batch, batch_idx):
         loss = self.common_step(batch) 
         self.log('train_loss', loss, on_step=True, on_epoch=True, prog_bar=True, logger=True) #tensorboard logs
         return loss
@@ -264,7 +312,6 @@ class Autoencoder_Wilson_Ver1 (pl.LightningModule,NPYDataLoader):
         reconstructions = self(inputs)
         denormalized_reconstructions = self.denormalize(reconstructions, self.M, self.m)
         original_shape_reconstructions = denormalized_reconstructions.view(-1, 256, 256, 1)
-        
         return original_shape_reconstructions
 
         
@@ -281,10 +328,9 @@ class Autoencoder_Wilson_Ver1 (pl.LightningModule,NPYDataLoader):
     
 if __name__ == '__main__':
     
-    logger = TensorBoardLogger("tb_logs", name=f"Wilson_Net_{select}_{function}_{batch_size}_{epochs}")
-    
+    logger = TensorBoardLogger("tb_logs", name=model_id)
     trainer = Trainer(logger=logger, fast_dev_run=False, accelerator='gpu',
-                      callbacks=[TQDMProgressBar(refresh_rate=10), checkpoint_callback], 
+                      callbacks=[MyProgressBar(), checkpoint_callback],
                       max_epochs=epochs)
     Wilson_Ver1_Net = Autoencoder_Wilson_Ver1()
        
