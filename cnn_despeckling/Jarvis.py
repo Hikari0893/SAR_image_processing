@@ -16,7 +16,7 @@ from cnn_despeckling.Activation_functions import *
 os.environ[
     'TF_CPP_MIN_LOG_LEVEL'] = '1'  # KEEP THIS BEFOR TF IMPORT and see tf.get_looger below, To disable informations, else '0' = DEBUG, '1' = INFO, '2' = WARNING, '3' = ERROR
 os.environ['CUDA_DEVICE_ORDER'] = 'PCI_BUS_ID'
-os.environ['CUDA_VISIBLE_DEVICES'] = '0'  # '1,3,4,5,6,7' for 12, '0','1','2','3' on 21
+os.environ['CUDA_VISIBLE_DEVICES'] = '1'  # '1,3,4,5,6,7' for 12, '0','1','2','3' on 21
 
 torch.set_float32_matmul_precision('medium')
 
@@ -48,9 +48,10 @@ ckpt_path = global_parameters['global_parameters']['CKPT']
 ratio = global_parameters['global_parameters']['training_data_percentage']
 
 data_folder = "/ste/usr/amao_jo/estudiantes/dayana/SAR_image_processing/data/training/"
-patternA = "sublookA*"
-patternB = "sublookB*"
-suffix = "azSL_sa95"
+
+suffix = "rgSL_sa0.95"
+patternA = "sublookA_"+suffix+"*"
+patternB = "sublookB_"+suffix+"*"
 
 model_id = f"WilsonVer1_Net_{select}_{function}_{batch_size}_{epochs}_{learning_rate}_{suffix}"
 

@@ -30,7 +30,7 @@ num_workers = int(global_parameters['global_parameters']['NUMWORKERS'])
 stride = 256
 ovr = 128
 
-subB_path = "../data/testing/sublookB_neustrelitz.npy"
+subB_path = "../data/testing/sublookB_rgSL_sa0.95_neustrelitz.npy"
 slc_path = "../data/testing/tsx_hh_slc_neustrelitz.npy"
 id = "neustrelitz"
 
@@ -60,19 +60,25 @@ crop3 = [rg_sta, rg_end, az_sta, az_end]
 
 # data2filter = [subB_path, slc_path]
 crops = [crop1, crop2]
-#
 # crops = [crop3]
 
 dir = "../cnn_despeckling/model_checkpoints/"
-models = ['WilsonVer1_Net_mse_leaky_relu_10_30_0.001_oldPre.ckpt',
-          'WilsonVer1_Net_mse_leaky_relu_10_30_0.001.ckpt']
+#models = ['WilsonVer1_Net_mse_leaky_relu_10_30_0.001_rgSL_sa1.ckpt']
 
-models = ['WilsonVer1_Net_mse_leaky_relu_10_30_0.001_azSL_sa95.ckpt']
+models = ['WilsonVer1_Net_mse_leaky_relu_10_30_0.001_rgSL_sa0.95.ckpt']
+
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-# data2filter = [subB_path, slc_path]
-data2filter = [slc_path]
+# City crop
+rg_sta = 8000
+rg_end = rg_sta + 256 * 3
+az_sta = 5000
+az_end = az_sta + 256 * 3
+crop_nozp = [rg_sta, rg_end, az_sta, az_end]
 
+data2filter = [subB_path, slc_path]
+# data2filter = [slc_path]
+tsx = True
 for checkpoint in models:
     for path in data2filter:
         for crop in crops:
@@ -92,7 +98,7 @@ for checkpoint in models:
             arr = arr**2
 
             patches = create_patches_n(arr[np.newaxis,...], ovr=ovr)
-            patch_list = mem_process_patches_with_model(patches, model, device)
+            patch_list = mem_process_patches_with_model(patches, model, device, tsx)
             clean_int = assemble_patches(patch_list, ovr=ovr)
             clean_amp = np.sqrt(clean_int)
             orig_amp = np.sqrt(arr)

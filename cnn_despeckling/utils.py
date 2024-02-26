@@ -7,14 +7,12 @@ from scipy.ndimage import filters
 from scipy.ndimage import gaussian_filter
 from Preprocessing__.Joint_Plots import calculate_1D_spectrum_joint
 from scipy.fft import fft, fftshift, ifft, ifftshift
-
+import torch
 from cnn_despeckling.Jarvis import *
 
-# Extract relevant parameters
-L = 1
-M = 10.089038980848645
-m = -1.429329123112601
-c = (special.psi(L) - np.log(L))
+
+
+
 
 def get_ovr(arr, fsar=False, sigma=6):
     if fsar:
@@ -56,15 +54,46 @@ def analyse_spectra(arr, fsar=False):
             break
 
     M = fft_img.shape[1]
-    zD = np.argmax(gaussian_filter(calculate_1D_spectrum_joint(fft_img), sigma=0))
+    zD = np.argmax(gaussian_filter(calculate_1D_spectrum_joint(fft_img), sigma=2))
+    # zD = int((end_freq - start_freq) / 2)
 
     return start_freq/M, end_freq/M, zD/M
 
-def normalize(batch):
+def normalize(batch, tsx=True):
     # batch[batch==0]=1e-2
+    if tsx:
+        # TSX Params
+        L = 1
+        M = 10.089038980848645
+        m = -1.429329123112601
+        c = (special.psi(L) - np.log(L))
+    else:
+        # FSAR params
+        L = 1
+        M = 0.5405280590057373
+        m = -6.354789972305298
+        c = (special.psi(L) - np.log(L))
+
+        # log_mean = np.mean(np.log(batch + 1e-5))
+        # log_std = np.std(np.log(batch + 1e-5))
+        # # Calculate M and m
+        # M = log_mean + 2 * log_std
+        # m = log_mean - 2 * log_std
     return (np.log(batch + 1e-5) - 2 * m) / (2 * (M - m))
 
-def denormalize(batch, debias=True):
+def denormalize(batch, tsx=True, debias=True):
+    if tsx:
+        # TSX Params
+        L = 1
+        M = 10.089038980848645
+        m = -1.429329123112601
+        c = (special.psi(L) - np.log(L))
+    else:
+        # FSAR params
+        L = 1
+        M = 1.3005793
+        m = -11.387268
+        c = (special.psi(L) - np.log(L))
     # return np.exp((M - m) * np.clip(np.squeeze(im), 0, 1) + m) + 1e-6
     # return np.exp(((M - m) * np.squeeze(im) + m + c))
     # return np.exp(((M - m) * np.clip(np.squeeze(batch), 0, 1) + m)) + 1e-7
@@ -106,11 +135,11 @@ def process_patches_with_model(patch_folder, model, device, desc='patches SLA', 
 
     return processed_patches
 
-def mem_process_patches_with_model(patch_list, model, device, desc='patches SLA', patch_index=None):
+def mem_process_patches_with_model(patch_list, model, device, tsx=True):
     processed_patches = []
     for patch in tqdm(patch_list, desc='Processing patches ...'):
         patch[patch==0] += 1e-1
-        patch = normalize(patch)
+        patch = normalize(patch, tsx=tsx)
         patch_tensor = torch.from_numpy(patch).unsqueeze(0)  # Add batch dimension
 
         # plt.imshow(np.sqrt(patch_list[0][0, ...]), vmax=300)
@@ -127,7 +156,7 @@ def mem_process_patches_with_model(patch_list, model, device, desc='patches SLA'
 
         # Convert output tensor to NumPy array and move to CPU
         output_array = output_tensor.squeeze(0).cpu().numpy()  # Remove batch dimension
-        output_array = denormalize(output_array)
+        output_array = denormalize(output_array, tsx=tsx)
         processed_patches.append(output_array)
 
     return processed_patches
@@ -341,3 +370,18 @@ def smooth(array, box, phase=False):
         return np.angle(smooth(np.exp(1j * array), box))
     else:
         return filters.uniform_filter(array.real, box)
+
+
+def list_processed_patches(file_list, patch_size=256):
+    data = []
+    for filename in file_list:
+        try:
+            # Load the .npy file
+            loaded_data = np.load(filename)
+            intensity = (np.abs(loaded_data[:, :, 0] + 1j * loaded_data[:, :, 1])) ** 2
+            # Create patches from the loaded data
+            patches = create_patches_n(intensity[np.newaxis,:], patch_size)
+            data.extend(patches)
+        except Exception as e:
+            print(f"Error loading {filename}: {e}")
+    return data
