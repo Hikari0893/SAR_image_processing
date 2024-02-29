@@ -24,16 +24,15 @@ crop = [rg_sta, rg_end, az_sta, az_end]
 
 # Processing parameters
 # For TSX, axis=0 AZIMUTH, axis=1 RANGE (columns = azimuth lines, rows = range lines)
-proc_axis = 1
-full_image = 1
-debug = 0
+proc_axis = 0
+full_image = 0
+debug = 1
 
 ids = ['koeln', 'shenyang', 'bangkok', 'enschene', 'neustrelitz']
 if proc_axis == 0:
     alpha = 0.61
     sub_alpha = 0.61
     procid = 'az'
-
 else:
     alpha = 0.6
     sub_alpha = 0.6
@@ -200,11 +199,11 @@ for id in ids:
                                                                       axis=2))
 
     if debug:
-        arr = np.load(f"../data/fsar/{procid}_sublookA_{id}.npy")
+        arr = np.load(f"../data/training/{procid}_sublookA_{id}.npy")
         arr = arr[..., 0] + 1j * arr[..., 1]
         suba = np.abs(arr)
 
-        arr = np.load(f"../data/fsar/{procid}_sublookB_{id}.npy")
+        arr = np.load(f"../data/training/{procid}_sublookB_{id}.npy")
         arr = arr[..., 0] + 1j * arr[..., 1]
         subb = np.abs(arr)
 
