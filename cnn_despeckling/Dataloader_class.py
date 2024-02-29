@@ -90,29 +90,23 @@ class NPYDataLoader:
             list_B = list_processed_patches(sorted(glob.glob(data_folder + patternB)), patch_size=256)
             self.dataset_A = NPYDataset_Mem(list_A + list_B)
             self.dataset_B = NPYDataset_Mem(list_B + list_A)
-        else:
-            self.dataset_A = NPYDataset(folder_A)
-            self.dataset_B = NPYDataset(folder_B)
 
-        if only_test == False:
-            training_ratio   = 0.75
-            validation_ratio = 0.25
+        training_ratio   = 0.75
+        validation_ratio = 0.25
 
-            dataset_size    = len(self.dataset_A)
-            training_size   = int(training_ratio * dataset_size)
-            validation_size = int(validation_ratio * dataset_size)
+        dataset_size    = len(self.dataset_A)
+        training_size   = int(training_ratio * dataset_size)
+        validation_size = int(validation_ratio * dataset_size)
 
-            # Split indices instead of datasets directly
-            indices = torch.randperm(dataset_size).tolist()
-            train_indices = indices[:training_size]
-            val_indices   = indices[training_size:training_size + validation_size]
+        # Split indices instead of datasets directly
+        indices = torch.randperm(dataset_size).tolist()
+        train_indices = indices[:training_size]
+        val_indices   = indices[training_size:training_size + validation_size]
 
-            train_set_A = torch.utils.data.Subset(self.dataset_A, train_indices)
-            train_set_B = torch.utils.data.Subset(self.dataset_B, train_indices)
-            val_set_A   = torch.utils.data.Subset(self.dataset_A, val_indices)
-            val_set_B   = torch.utils.data.Subset(self.dataset_B, val_indices)
+        train_set_A = torch.utils.data.Subset(self.dataset_A, train_indices)
+        train_set_B = torch.utils.data.Subset(self.dataset_B, train_indices)
+        val_set_A   = torch.utils.data.Subset(self.dataset_A, val_indices)
+        val_set_B   = torch.utils.data.Subset(self.dataset_B, val_indices)
 
-            self.train_loader = DataLoader(CombinedDataset(train_set_A, train_set_B), batch_size=batch_size, shuffle=True, num_workers=num_workers)
-            self.val_loader   = DataLoader(CombinedDataset(val_set_A, val_set_B), batch_size=batch_size, shuffle=True, num_workers=num_workers)
-        else:
-            self.test_loader  = DataLoader(CombinedDataset(self.dataset_A, self.dataset_B), batch_size=100, shuffle=False, num_workers=16)
+        self.train_loader = DataLoader(CombinedDataset(train_set_A, train_set_B), batch_size=batch_size, shuffle=True, num_workers=num_workers)
+        self.val_loader   = DataLoader(CombinedDataset(val_set_A, val_set_B), batch_size=batch_size, shuffle=True, num_workers=num_workers)

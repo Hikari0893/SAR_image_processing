@@ -3,7 +3,6 @@ import sys
 #Trainer class
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import TensorBoardLogger
-#look into progress bar
 from pytorch_lightning.callbacks import TQDMProgressBar, ModelCheckpoint
 import pytorch_lightning as pl
 import torch.optim as optim
@@ -29,12 +28,6 @@ config_file = "../config.json"  # Update with your JSON file path
 with open(config_file, 'r') as json_file:
     global_parameters = json.load(json_file)
 
-# Extract relevant parameters
-L = int(global_parameters['global_parameters']['L'])
-M = float(global_parameters['global_parameters']['M'])
-m = float(global_parameters['global_parameters']['m'])
-c = (1 / 2) * (special.psi(L) - np.log(L))
-
 select = global_parameters['global_parameters']['SELECT'] #To select the activation function
 function = global_parameters['global_parameters']['FUNCTION'] #Loss function
 learning_rate = float(global_parameters['global_parameters']['learning_rate'])
@@ -47,13 +40,37 @@ input_folder_B = global_parameters['global_parameters']['REFERENCE_FOLDER']
 ckpt_path = global_parameters['global_parameters']['CKPT']
 ratio = global_parameters['global_parameters']['training_data_percentage']
 
-data_folder = "/ste/usr/amao_jo/estudiantes/dayana/SAR_image_processing/data/training/"
+fsar = 1
+proc_axis = 1
 
-suffix = "rgSL_sa0.95"
-patternA = "sublookA_"+suffix+"*"
-patternB = "sublookB_"+suffix+"*"
+if proc_axis == 0:
+    procid = 'az'
+else:
+    procid = 'rg'
 
-model_id = f"WilsonVer1_Net_{select}_{function}_{batch_size}_{epochs}_{learning_rate}_{suffix}"
+if fsar:
+    # FSAR case
+    L = 1
+    M = 2.6145849051127814 / 2
+    m = -16.118095 / 2
+    c = (special.psi(L) - np.log(L))
+    cons = 1e-8
+    data_folder = "/ste/usr/amao_jo/estudiantes/dayana/SAR_image_processing/data/fsar/"
+    suffix = "fsar"
+else:
+    # Extract relevant parameters
+    L = int(global_parameters['global_parameters']['L'])
+    M = float(global_parameters['global_parameters']['M'])
+    m = float(global_parameters['global_parameters']['m'])
+    c = (1 / 2) * (special.psi(L) - np.log(L))
+    cons = 1e-2
+    data_folder = "/ste/usr/amao_jo/estudiantes/dayana/SAR_image_processing/data/training/"
+    suffix = "tsx"
+
+patternA = f"{procid}_sublookA_*"
+patternB = f"{procid}_sublookB_*"
+
+model_id = f"WilsonVer1_Net_{select}_{function}_{batch_size}_{epochs}_{learning_rate}_{procid}_{suffix}"
 
 # Save checkpoints every n epochs
 checkpoint_callback = ModelCheckpoint(
@@ -212,11 +229,13 @@ class my_Unet(nn.Module):
     
     
 class Autoencoder_Wilson_Ver1 (pl.LightningModule,NPYDataLoader):
-    def __init__(self, width = 256, height = 256):
+    def __init__(self, width = 256, height = 256, training=False):
         pl.LightningModule.__init__(self)
-        NPYDataLoader.__init__(self, batch_size=batch_size, num_workers=num_workers,
-                               folder_A = input_folder_A, folder_B = input_folder_B, only_test=only_test,
-                               data_folder = data_folder, patternA = patternA, patternB = patternB)
+        if training:
+            NPYDataLoader.__init__(self, batch_size=batch_size, num_workers=num_workers,
+                                   folder_A = input_folder_A, folder_B = input_folder_B, only_test=only_test,
+                                   data_folder = data_folder, patternA = patternA, patternB = patternB)
+
         self.lr = learning_rate
         self.loss_f = Loss_funct()
         
@@ -240,12 +259,13 @@ class Autoencoder_Wilson_Ver1 (pl.LightningModule,NPYDataLoader):
         #remove this after dataset
         self.M  = M
         self.m  = m
-        return (torch.log(batch + 1e-7) - 2*self.m)/(2*(self.M - self.m))
+        self.cons = cons
+        return (torch.log(batch + self.cons) - 2*self.m)/(2*(self.M - self.m))
 
     # Not used given the architecture...
     def denormalize(self,normalized_data, Max, min):
         log_data = normalized_data * (Max - min) + min
-        original_data = torch.exp(log_data) - 1e-7
+        original_data = torch.exp(log_data) - self.cons
         return original_data
 
     def common_step(self,batch):
@@ -259,7 +279,6 @@ class Autoencoder_Wilson_Ver1 (pl.LightningModule,NPYDataLoader):
         bk = self.normalize(x_true)
 
         # import matplotlib.pyplot as plt
-        # import numpy as np
         # Ynpy = x[0,0,:,:].cpu().numpy()
         # Xnpy = x_true[0,0,:,:].cpu().numpy()
         #
@@ -267,6 +286,7 @@ class Autoencoder_Wilson_Ver1 (pl.LightningModule,NPYDataLoader):
         # plt.figure()
         # plt.imshow((Xnpy)**(1/2), cmap="gray", vmax=300)
         # plt.show()
+
 
         # neural network (rk is the denoised image, in the signal domain)
         rk = self(ak)
@@ -333,7 +353,7 @@ if __name__ == '__main__':
     trainer = Trainer(logger=logger, fast_dev_run=False, accelerator='gpu',
                       callbacks=[MyProgressBar(), checkpoint_callback],
                       max_epochs=epochs)
-    Wilson_Ver1_Net = Autoencoder_Wilson_Ver1()
+    Wilson_Ver1_Net = Autoencoder_Wilson_Ver1(training=True)
        
     trainer.fit(Wilson_Ver1_Net)#,ckpt_path=ckpt_path to continue training from a certain epoch [trainer.fit(Wilson_Ver1_Net,ckpt_path=ckpt_path)]
     

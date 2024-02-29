@@ -23,21 +23,21 @@ crop = [rg_sta, rg_end, az_sta, az_end]
 # id = 'enschene'
 
 # Processing parameters
-# rg = 0, az = 1
-axis = 1
-debug = True
-noZP = False
-full_image = False
-ids = ['koeln', 'shenyang', 'bangkok', 'enschene', 'neustrelitz']
+# For TSX, axis=0 AZIMUTH, axis=1 RANGE (columns = azimuth lines, rows = range lines)
+proc_axis = 1
+full_image = 1
+debug = 0
 
-if axis == 0:
+ids = ['koeln', 'shenyang', 'bangkok', 'enschene', 'neustrelitz']
+if proc_axis == 0:
     alpha = 0.61
-    sub_alpha = 0.95
-    procid = 'rgSL_sa'+str(sub_alpha)+'_'
+    sub_alpha = 0.61
+    procid = 'az'
+
 else:
     alpha = 0.6
-    sub_alpha = 0.999
-    procid = 'azSL_sa'+str(sub_alpha)+'_'
+    sub_alpha = 0.6
+    procid = 'rg'
 
 for id in ids:
     SIZE = []
@@ -53,13 +53,15 @@ for id in ids:
     else:
         complex_image = picture[rg_sta:rg_end, az_sta:az_end, 0] + 1j * picture[rg_sta:rg_end, az_sta:az_end, 1]
 
-    if axis == 0:
-        # Transpose if range sublooks are desired
+    # Transposing if processing azimuth sublooks...
+    if proc_axis == 0:
         complex_image = complex_image.T
+        print("Processing AZIMUTH sublooks!")
+    else:
+        print("Processing RANGE sublooks!")
+
 
     SIZE = complex_image.shape
-
-    # Applying FFT by row and FFTshift
     fft_img = fftshift(fft(complex_image, axis=1), axes=1)
     start, end, zD = analyse_spectra(complex_image[0:1000, 0:1000])
 
@@ -69,6 +71,14 @@ for id in ids:
 
     print("Spectra start/end and zD:")
     print((start, end, zD))
+
+    # Shift the spectrum to 0
+    hlf = fft_img.shape[1] // 2
+    spec_shift = hlf - zD
+    fft_img = np.roll(fft_img, spec_shift, axis=1)
+    start += spec_shift
+    end += spec_shift
+    zD += spec_shift
 
     spectra = fft_img[:, start:end]
     # Inverse of Hamming window
@@ -95,11 +105,24 @@ for id in ids:
     hamming_win = hamming_window(end - zD, alpha=sub_alpha)
     b_padded[:, zD:end] *= hamming_win
 
-    # # Half spacing test
-    # a_padded = a_padded[:, 0:zD]
-    # b_padded = b_padded[:, zD:-1]
+    # same OSF as input, have to cut exactly in the middle to avoid sublooks with different sizes
+    a_padded = a_padded[:, 0:hlf]
+    if np.mod(M, 2) == 0:
+        b_padded = b_padded[:, hlf-1:-1]
+    else:
+        b_padded = b_padded[:, hlf:-1]
 
-    print("Done with zero padding and Hamming processing...")
+    print(f"ZD : {zD}, HLF : {hlf}")
+
+    try:
+        a_padded + b_padded
+    except ValueError:
+        print("Sublooks have different dimensions. Skipping scene...")
+        continue
+    else:
+        print("Sublooks have the same dimensions after zero-Padding")
+
+    print("Done with zero-padding and Hamming processing...")
 
     # Applying IFFT by row and IFFTshift for each sublook
     spatial_sectA = ifft(ifftshift(a_padded, axes=1), axis=1)
@@ -116,79 +139,91 @@ for id in ids:
         osf = M / m
         os_pad = int((M - int(M / osf)))
 
-        m_sa = zD - start
+        m_sa = hlf - start
         osf_sa = M / m_sa
         os_pad_sa = int((M - int(M / osf_sa)))
         # Oversampling factor is now twice as large in the sublooks after 2 sublooks
 
-        if axis == 1:
+        if proc_axis == 1:
             ccrop = complex_image[400:550, 625:775]
             acrop = spatial_sectA[400:550, 625:775]
+            bcrop = spatial_sectB[400:550, 625:775]
+            # ccrop = complex_image2[400:550, 1230:1550]
+
         else:
             ccrop = complex_image[625:775,400:550]
             acrop = spatial_sectA[625:775,400:550]
 
-        if noZP:
-            ccrop = complex_image[400:550,625:775]
-            acrop = spatial_sectA[400:550,625:700]
 
         # plt.figure()
-        # plt.imshow(np.abs(ccrop), vmax=300, cmap="gray")
+        # plt.imshow(np.abs(spatial_sectA)[0:500,0:500], vmax=300, cmap="gray")
         # plt.figure()
-        # plt.imshow(np.abs(acrop), vmax=300, cmap="gray")
+        # plt.imshow(np.abs(spatial_sectB)[0:500,0:500], vmax=300, cmap="gray")
+        # plt.figure()
+        # plt.imshow(np.abs(complex_image)[0:500,0:1000], vmax=300, cmap="gray")
 
-        plt.figure()
-        plt.hist(np.abs(ccrop).flatten(), bins=100)
-        plt.hist(np.abs(acrop).flatten(), bins=100, alpha=0.7)
-        plt.gca().legend((f'Amplitude histogram (full res),'
-                          f' mean={np.mean(np.abs(ccrop)):.2f}, var={np.var(np.abs(ccrop)):.2f}',
-                          f'Amplitude histogram (SL_a, sub_alpha={sub_alpha},'
-                          f' mean={np.mean(np.abs(acrop)):.2f}, var={np.var(np.abs(acrop)):.2f}',))
+        histo=False
+        if histo:
+            plt.figure()
+            plt.hist(np.abs(ccrop).flatten(), bins=100)
+            plt.hist(np.abs(acrop).flatten(), bins=100, alpha=0.7)
+            plt.gca().legend((f'Amplitude histogram (full res),'
+                              f' mean={np.mean(np.abs(ccrop)):.2f}, var={np.var(np.abs(ccrop)):.2f}',
+                              f'Amplitude histogram (SL_a, sub_alpha={sub_alpha},'
+                              f' mean={np.mean(np.abs(acrop)):.2f}, var={np.var(np.abs(acrop)):.2f}',))
 
-        plt.figure()
-        plt.hist(np.real(ccrop).flatten(), bins=100)
-        plt.hist(np.real(acrop).flatten(), bins=100, alpha=0.7)
+            plt.figure()
+            plt.hist(np.real(ccrop).flatten(), bins=100)
+            plt.hist(np.real(acrop).flatten(), bins=100, alpha=0.7)
 
-        plt.gca().legend(('Histogram of the I/Q component (full res)',
-                          'Histogram of the I/Q component (SL_a, sub_alpha = ' + str(sub_alpha) +')'))
-
-        plt.show()
-
+            plt.gca().legend(('Histogram of the I/Q component (full res)',
+                              'Histogram of the I/Q component (SL_a, sub_alpha = ' + str(sub_alpha) +')'))
 
         stop = True
 
     print("Done with ifft...")
 
-    # Go back to original axes when processing range sublooks
-    if axis == 0:
+    # Go back to original axes when processing azimuth sublooks
+    if proc_axis == 0:
         spatial_sectA = spatial_sectA.T
         spatial_sectB = spatial_sectB.T
 
     if id == 'neustrelitz':
-        np.save('../data/testing/sublookA_' + procid + id + '.npy',
-                np.stack((np.real(spatial_sectA), np.imag(spatial_sectA)),
-                         axis=2))
-
-        np.save('../data/testing/sublookB_' + procid + id + '.npy',
-                np.stack((np.real(spatial_sectB), np.imag(spatial_sectB)),
-                         axis=2))
+        np.save(f"../data/testing/{procid}_sublookA_{id}.npy", np.stack((np.real(spatial_sectA), np.imag(spatial_sectA)),
+                                                                      axis=2))
+        np.save(f"../data/testing/{procid}_sublookB_{id}.npy", np.stack((np.real(spatial_sectB), np.imag(spatial_sectB)),
+                                                                      axis=2))
     else:
-        np.save('../data/training/sublookA_'+procid+id+'.npy', np.stack((np.real(spatial_sectA), np.imag(spatial_sectA)),
+        np.save(f"../data/training/{procid}_sublookA_{id}.npy", np.stack((np.real(spatial_sectA), np.imag(spatial_sectA)),
+                                                                      axis=2))
+        np.save(f"../data/training/{procid}_sublookB_{id}.npy", np.stack((np.real(spatial_sectB), np.imag(spatial_sectB)),
                                                                       axis=2))
 
-        np.save('../data/training/sublookB_'+procid+id+'.npy', np.stack((np.real(spatial_sectB), np.imag(spatial_sectB)),
-                                                                      axis=2))
+    if debug:
+        arr = np.load(f"../data/fsar/{procid}_sublookA_{id}.npy")
+        arr = arr[..., 0] + 1j * arr[..., 1]
+        suba = np.abs(arr)
+
+        arr = np.load(f"../data/fsar/{procid}_sublookB_{id}.npy")
+        arr = arr[..., 0] + 1j * arr[..., 1]
+        subb = np.abs(arr)
+
+        plt.figure()
+        plt.imshow(suba, vmax=300, cmap="gray")
+
+        plt.figure()
+        plt.imshow(subb, vmax=300, cmap="gray")
+
+        amp_org = np.abs(complex_image)
+        if proc_axis == 0:
+            amp_org = amp_org.T
+
+        plt.figure()
+        plt.imshow(amp_org, vmax=300, cmap="gray")
+        plt.show()
+
+        stop=1
 
     print("Done with id: " + str(id))
 
-
-
     print("-----")
-
-
-# print("Creating patches from sublooks...")
-# stride = 256
-# output_base_folder = '../data/training_patches/'
-# A_files = sorted(glob.glob('../data/training/sublookA*'))
-# B_files = sorted(glob.glob('../data/training/sublookB*'))
-# create_patches([A_files, B_files], stride, output_base_folder)

@@ -9,10 +9,7 @@ from Preprocessing__.Joint_Plots import calculate_1D_spectrum_joint
 from scipy.fft import fft, fftshift, ifft, ifftshift
 import torch
 from cnn_despeckling.Jarvis import *
-
-
-
-
+from scipy.fft import fft, fftshift, ifft, ifftshift
 
 def get_ovr(arr, fsar=False, sigma=6):
     if fsar:
@@ -28,11 +25,11 @@ def get_ovr(arr, fsar=False, sigma=6):
     end = np.argmin(grad)
     return start/M, end/M, zD/M
 
-def analyse_spectra(arr, fsar=False):
-    if fsar:
-        fft_img = fft(arr, axis=1)
-    else:
+def analyse_spectra(arr, axis=1):
+    if axis == 1:
         fft_img = fftshift(fft(arr, axis=1), axes=1)
+    else:
+        fft_img = fft(arr, axis=1)
 
     # Choose a threshold (for example, 10% of the maximum magnitude)
     spectra = calculate_1D_spectrum_joint(fft_img)
@@ -54,8 +51,9 @@ def analyse_spectra(arr, fsar=False):
             break
 
     M = fft_img.shape[1]
-    zD = np.argmax(gaussian_filter(calculate_1D_spectrum_joint(fft_img), sigma=2))
-    # zD = int((end_freq - start_freq) / 2)
+
+    # zD = np.argmax(gaussian_filter(calculate_1D_spectrum_joint(fft_img), sigma=2))
+    zD = int((end_freq - start_freq) / 2) + start_freq
 
     return start_freq/M, end_freq/M, zD/M
 
@@ -67,41 +65,33 @@ def normalize(batch, tsx=True):
         M = 10.089038980848645
         m = -1.429329123112601
         c = (special.psi(L) - np.log(L))
+        cons = 1e-2
     else:
         # FSAR params
         L = 1
-        M = 0.5405280590057373
-        m = -6.354789972305298
+        M = 2.6145849051127814/2
+        m = -16.118095/2
         c = (special.psi(L) - np.log(L))
+        cons = 1e-8
+    return (np.log(batch + cons) - 2 * m) / (2 * (M - m))
 
-        # log_mean = np.mean(np.log(batch + 1e-5))
-        # log_std = np.std(np.log(batch + 1e-5))
-        # # Calculate M and m
-        # M = log_mean + 2 * log_std
-        # m = log_mean - 2 * log_std
-    return (np.log(batch + 1e-5) - 2 * m) / (2 * (M - m))
-
-def denormalize(batch, tsx=True, debias=True):
+def denormalize(batch, tsx=True):
     if tsx:
         # TSX Params
         L = 1
         M = 10.089038980848645
         m = -1.429329123112601
         c = (special.psi(L) - np.log(L))
+        cons = 1e-2
     else:
         # FSAR params
         L = 1
-        M = 1.3005793
-        m = -11.387268
-        c = (special.psi(L) - np.log(L))
-    # return np.exp((M - m) * np.clip(np.squeeze(im), 0, 1) + m) + 1e-6
-    # return np.exp(((M - m) * np.squeeze(im) + m + c))
-    # return np.exp(((M - m) * np.clip(np.squeeze(batch), 0, 1) + m)) + 1e-7
-    if debias:
-        return np.exp(2 * np.clip(np.squeeze(batch), 0, 1) * (M - m) + m + c + c/2) + 1e-7
-        # return np.exp(2 * np.squeeze(batch) * (M - m) + m + c ) + 1e-5
-    else:
-        return np.exp(2 * np.clip(np.squeeze(batch), 0, 1) * (M - m) + m) + 1e-7
+        M = 2.6145849051127814/2
+        m = -16.118095/2
+        c = (special.psi(L) - np.log(L)) * 0.5
+        cons = 1e-8
+    return np.exp(2 * np.squeeze(batch) * (M - m) + 2*m - c) + cons
+
 
 def process_patches_with_model(patch_folder, model, device, desc='patches SLA', patch_index=None):
     processed_patches = []
@@ -138,7 +128,9 @@ def process_patches_with_model(patch_folder, model, device, desc='patches SLA', 
 def mem_process_patches_with_model(patch_list, model, device, tsx=True):
     processed_patches = []
     for patch in tqdm(patch_list, desc='Processing patches ...'):
-        patch[patch==0] += 1e-1
+        if tsx:
+            patch[patch==0] += 1e-1
+
         patch = normalize(patch, tsx=tsx)
         patch_tensor = torch.from_numpy(patch).unsqueeze(0)  # Add batch dimension
 
@@ -251,21 +243,19 @@ def create_patches_n(arr, pat_size=256, ovr=0):
         for j in range(r2):
             patch = arr[:, i * (n - ovr):i * (n - ovr) + n, j * (n - ovr):j * (n - ovr) + n]
             patch_list.append(patch)
-    return patch_list
+    return patch_list, r1, r2
 
 
-def assemble_patches(L_patches, ovr, TEST=False, gaussian_std=0.25):
+def assemble_patches(L_patches, r1, r2, ovr, TEST=False, gaussian_std=0.25):
     """
+    :param r1: # number of patches per row
+    :param r2: # number of patches per column
     :param L_patches: list of ordered patches
     :param ovr: overlaping pixels (integer)
     :param TEST: To plot more things
     :param gaussian_std: Standard deviation of the 2D gaussian weights window
     :return: reconstructed array
     """
-
-    nb_batch = len(L_patches)
-    r1 = round(nb_batch ** 0.5)
-    r2 = r1
 
     n = np.shape(L_patches[0])[0]
     ovr = int(ovr)
@@ -375,12 +365,13 @@ def smooth(array, box, phase=False):
 def list_processed_patches(file_list, patch_size=256):
     data = []
     for filename in file_list:
+        print(f" Processing sublook: {filename}")
         try:
             # Load the .npy file
             loaded_data = np.load(filename)
             intensity = (np.abs(loaded_data[:, :, 0] + 1j * loaded_data[:, :, 1])) ** 2
             # Create patches from the loaded data
-            patches = create_patches_n(intensity[np.newaxis,:], patch_size)
+            patches, _, _ = create_patches_n(intensity[np.newaxis,:], patch_size)
             data.extend(patches)
         except Exception as e:
             print(f"Error loading {filename}: {e}")

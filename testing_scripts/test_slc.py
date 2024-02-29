@@ -8,7 +8,7 @@ from cnn_despeckling.utils import (plot_residues,
                                    threshold_and_clip,
                                    mem_process_patches_with_model,
                                    create_patches_n, assemble_patches,
-                                   T_EF)
+                                   T_EF, preprocess_slc)
 
 from matplotlib.patches import Rectangle
 import matplotlib.pyplot as plt
@@ -30,9 +30,6 @@ num_workers = int(global_parameters['global_parameters']['NUMWORKERS'])
 stride = 256
 ovr = 128
 
-subB_path = "../data/testing/sublookB_rgSL_sa0.95_neustrelitz.npy"
-slc_path = "../data/testing/tsx_hh_slc_neustrelitz.npy"
-id = "neustrelitz"
 
 # slc_path = "../data/testing/tsx_hh_slc_hamburg.npy"
 # id = "hamburg"
@@ -62,10 +59,15 @@ crop3 = [rg_sta, rg_end, az_sta, az_end]
 crops = [crop1, crop2]
 # crops = [crop3]
 
+subB_path = "../data/testing/az_sublookB_neustrelitz.npy"
+slc_path = "../data/testing/tsx_hh_slc_neustrelitz.npy"
+id = "neustrelitz"
+
 dir = "../cnn_despeckling/model_checkpoints/"
 #models = ['WilsonVer1_Net_mse_leaky_relu_10_30_0.001_rgSL_sa1.ckpt']
 
-models = ['WilsonVer1_Net_mse_leaky_relu_10_30_0.001_rgSL_sa0.95.ckpt']
+models = ['WilsonVer1_Net_mse_leaky_relu_10_30_0.001_az_tsx.ckpt',
+          'WilsonVer1_Net_mse_leaky_relu_10_30_0.001_rg_tsx.ckpt']
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
@@ -75,18 +77,23 @@ rg_end = rg_sta + 256 * 3
 az_sta = 5000
 az_end = az_sta + 256 * 3
 crop_nozp = [rg_sta, rg_end, az_sta, az_end]
+axis = None
 
-data2filter = [subB_path, slc_path]
+data2filter = [slc_path, subB_path]
 # data2filter = [slc_path]
 tsx = True
+
 for checkpoint in models:
+    model = Autoencoder_Wilson_Ver1.load_from_checkpoint(dir + checkpoint)
+    model.to(device)
     for path in data2filter:
         for crop in crops:
             # Instantiate the Model
-            model = Autoencoder_Wilson_Ver1.load_from_checkpoint(dir + checkpoint)
-            model.to(device)
-
             rg_sta, rg_end, az_sta, az_end = crop
+            if path == subB_path:
+                rg_sta = rg_sta // 2
+                rg_end = rg_end // 2 + 256*3
+
             model_result_folder = os.path.join("../results/", Path(checkpoint).stem + "/" + Path(path).stem)
             if not os.path.exists(model_result_folder):
                 print(f"CreateFolder: {model_result_folder}")
@@ -94,15 +101,52 @@ for checkpoint in models:
 
             arr = np.load(path)
             arr = arr[rg_sta:rg_end, az_sta:az_end, 0] + 1j * arr[rg_sta:rg_end, az_sta:az_end, 1]
-            arr = np.abs(arr)
-            arr = arr**2
 
-            patches = create_patches_n(arr[np.newaxis,...], ovr=ovr)
+            if axis is not None:
+                arr = preprocess_slc(arr, axis=axis)
+
+
+            arr = np.abs(arr)**2
+
+            # # Calculate mean and standard deviation of arrz
+            # arrz = np.log(arr + 1e-7)
+            # mean_arrz = np.mean(arrz)
+            # std_arrz = np.std(arrz)
+            #
+            # # Calculate M and m for normalization
+            # Maa = mean_arrz + std_arrz
+            # maa = mean_arrz - std_arrz
+            #
+            # # Normalize arrz to arry
+            # arry = ((arrz - 2 * m) / (2 * (M - m)))
+            #
+            # # Denormalize arry back to arrz
+            # arrz_restored = np.exp(2 * np.clip(np.squeeze(arry), 0, 1) * (M - m) + m) + 1e-7
+            #
+            # meee = (np.log(arr + 1e-5) - 2 * maa) / (2 * (Maa - maa))
+            # print(np.mean(meee))
+            # plt.hist(meee.flatten(), bins=50)
+            #
+            # plt.figure()
+            # hol = (np.log(arr + 1e-5) - 2 * m) / (2 * (M - m))
+            # print(np.mean(hol))
+            # plt.hist(hol.flatten(), bins=50)
+            #
+            # kek = np.exp(2 * np.clip(np.squeeze(meee), 0, 1) * (Maa - maa) + maa) + 1e-7
+            # kek2 = np.exp(2 * np.clip(np.squeeze(hol), 0, 1) * (M - m) + m) + 1e-7
+
+            patches, r1, r2 = create_patches_n(arr[np.newaxis,...], ovr=ovr)
             patch_list = mem_process_patches_with_model(patches, model, device, tsx)
-            clean_int = assemble_patches(patch_list, ovr=ovr)
-            clean_amp = np.sqrt(clean_int)
+            clean_int = assemble_patches(patch_list, r1, r2, ovr=ovr)
             orig_amp = np.sqrt(arr)
+            if axis == 1:
+                clean_int = clean_int[:, ::2]
+                orig_amp = np.sqrt(arr[:, ::2])
+            if axis == 0:
+                clean_int = clean_int[::2, :]
+                orig_amp = np.sqrt(arr[::2, :])
 
+            clean_amp = np.sqrt(clean_int)
             noisy2plot = np.flipud(orig_amp)
             filename = model_result_folder + '/noisy' + str(crop) + '.png'
             imwrite(filename, threshold_and_clip(noisy2plot, noisy2plot))
