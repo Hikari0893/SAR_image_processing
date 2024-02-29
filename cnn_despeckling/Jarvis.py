@@ -308,25 +308,7 @@ class Autoencoder_Wilson_Ver1 (pl.LightningModule,NPYDataLoader):
         loss = self.common_step(batch)
         self.log('val_loss', loss, on_step=False, on_epoch=True, prog_bar=True, logger=True)
         return loss
-    
-    #insert tensorboard metadata
-    def on_validation_epoch_end(self):
-        if hasattr(self, 'validation_outputs'):
-            # Concatenate outputs
-            all_outputs = torch.cat(self.validation_outputs, dim=0)
 
-            # Calculate metrics, e.g., the average
-            avg_validation_loss = all_outputs.mean()
-
-            # Record metrics
-            self.log('val_loss', avg_validation_loss)
-
-            # Clean up the list for the next season
-            self.validation_outputs.clear()
-        else:
-            #  Handling the case without outputs
-            self.log('val_loss', 0)
-    
     def predict_step(self, batch, batch_idx):
         
         inputs = self.normalize(batch)
