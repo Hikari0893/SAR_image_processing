@@ -41,7 +41,7 @@ ckpt_path = global_parameters['global_parameters']['CKPT']
 ratio = global_parameters['global_parameters']['training_data_percentage']
 
 fsar = 1
-proc_axis = 1
+proc_axis = 0
 
 if proc_axis == 0:
     procid = 'az'
@@ -51,9 +51,9 @@ else:
 if fsar:
     # FSAR case
     L = 1
-    M = 2.6145849051127814 / 2
-    m = -16.118095 / 2
-    c = (special.psi(L) - np.log(L))
+    M = 1.3072924
+    m = -8.0590475
+    c = special.psi(L) - np.log(L)
     cons = 1e-8
     data_folder = "/ste/usr/amao_jo/estudiantes/dayana/SAR_image_processing/data/fsar/"
     suffix = "fsar_dinsar"

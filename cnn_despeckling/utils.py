@@ -73,7 +73,7 @@ def analyse_spectra(arr):
     return start_freq/M, end_freq/M, zD/M, shift
 
 def sublook_shift(fft_img, shift):
-    return np.roll(fft_img, int(shift * fft_img.shape[0]), axis=1)
+    return np.roll(fft_img, int(shift * fft_img.shape[1]), axis=1)
 
 def normalize(batch, tsx=True):
     # batch[batch==0]=1e-2
@@ -87,8 +87,8 @@ def normalize(batch, tsx=True):
     else:
         # FSAR params
         L = 1
-        M = 2.6145849051127814/2
-        m = -16.118095/2
+        M = 1.3072924
+        m = -8.0590475
         c = (special.psi(L) - np.log(L))
         cons = 1e-8
     return (np.log(batch + cons) - 2 * m) / (2 * (M - m))
@@ -107,7 +107,7 @@ def split_sublooks(arr, axis=0, alpha=0.6, debug = False):
     print(f"Processed scene size: {SIZE}")
 
     # Returns shift multiplier
-    start, end, zD, shift = analyse_spectra(complex_image[0:1000, 0:1000])
+    start, end, zD, shift = analyse_spectra(complex_image[0:3000, 0:3000])
     fft_img = fft(complex_image, axis=1)
     fft_img = sublook_shift(fft_img, shift)
 
@@ -257,8 +257,8 @@ def denormalize(batch, tsx=True):
     else:
         # FSAR params
         L = 1
-        M = 2.6145849051127814/2
-        m = -16.118095/2
+        M = 1.3072924
+        m = -8.0590475
         c = (special.psi(L) - np.log(L)) * 0.5
         cons = 1e-8
     return np.exp(2 * np.squeeze(batch) * (M - m) + 2*m - c) + cons

@@ -19,47 +19,47 @@ crop = [rg_sta, rg_end, az_sta, az_end]
 
 # Processing parameters
 # For TSX, axis=0 AZIMUTH, axis=1 RANGE (columns = azimuth lines, rows = range lines)
-proc_axis = 0
+proc_axis = 1
 debug = 0
 
 ids = ['koeln', 'shenyang', 'bangkok', 'enschene', 'neustrelitz']
-if proc_axis == 0:
-    alpha = 0.61
-    procid = 'az'
-else:
-    alpha = 0.6
-    procid = 'rg'
-
-for id in ids:
-    print(f"Processing file {id}...")
-    if id == 'neustrelitz':
-        picture = np.load('../data/testing/tsx_hh_slc_' + id + '.npy')
+for proc_axis in [0, 1]:
+    if proc_axis == 0:
+        alpha = 0.61
+        procid = 'az'
     else:
-        picture = np.load('../data/training/tsx_hh_slc_'+id+'.npy')
+        alpha = 0.6
+        procid = 'rg'
+    for id in ids:
+        print(f"Processing file {id}...")
+        if id == 'neustrelitz':
+            picture = np.load('../data/testing/tsx_hh_slc_' + id + '.npy')
+        else:
+            picture = np.load('../data/training/tsx_hh_slc_'+id+'.npy')
 
-    # Reconstruct the complex image from its real and imaginary parts.
-    if debug:
-        complex_image = picture[rg_sta:rg_end, az_sta:az_end, 0] + 1j * picture[rg_sta:rg_end, az_sta:az_end, 1]
-    else:
-        complex_image = picture[:, :, 0] + 1j * picture[: ,: , 1]
+        # Reconstruct the complex image from its real and imaginary parts.
+        if debug:
+            complex_image = picture[rg_sta:rg_end, az_sta:az_end, 0] + 1j * picture[rg_sta:rg_end, az_sta:az_end, 1]
+        else:
+            complex_image = picture[:, :, 0] + 1j * picture[: ,: , 1]
 
-    spatial_sectA, spatial_sectB = split_sublooks(complex_image, proc_axis, alpha, debug)
+        spatial_sectA, spatial_sectB = split_sublooks(complex_image, proc_axis, alpha, debug)
 
-    if id == 'neustrelitz':
-        np.save(f"../data/testing/{procid}_sublookA_{id}.npy", np.stack((np.real(spatial_sectA), np.imag(spatial_sectA)),
-                                                                      axis=2))
-        np.save(f"../data/testing/{procid}_sublookB_{id}.npy", np.stack((np.real(spatial_sectB), np.imag(spatial_sectB)),
-                                                                      axis=2))
-    else:
-        pathA = f"../data/training/{procid}_sublookA_{id}.npy"
-        np.save(pathA, np.stack((np.real(spatial_sectA), np.imag(spatial_sectA)),
-                                                                      axis=2))
-        pathB = f"../data/training/{procid}_sublookB_{id}.npy"
-        np.save(pathB, np.stack((np.real(spatial_sectB), np.imag(spatial_sectB)),
-                                                                      axis=2))
+        if id == 'neustrelitz':
+            np.save(f"../data/testing/{procid}_sublookA_{id}.npy", np.stack((np.real(spatial_sectA), np.imag(spatial_sectA)),
+                                                                          axis=2))
+            np.save(f"../data/testing/{procid}_sublookB_{id}.npy", np.stack((np.real(spatial_sectB), np.imag(spatial_sectB)),
+                                                                          axis=2))
+        else:
+            pathA = f"../data/training/{procid}_sublookA_{id}.npy"
+            np.save(pathA, np.stack((np.real(spatial_sectA), np.imag(spatial_sectA)),
+                                                                          axis=2))
+            pathB = f"../data/training/{procid}_sublookB_{id}.npy"
+            np.save(pathB, np.stack((np.real(spatial_sectB), np.imag(spatial_sectB)),
+                                                                          axis=2))
 
-    if debug:
-        plot_sublooks(pathA, pathB, complex_image)
+        if debug:
+            plot_sublooks(pathA, pathB, complex_image)
 
-    print("Done with id: " + str(id))
-    print("-----")
+        print("Done with id: " + str(id))
+        print("-----")
