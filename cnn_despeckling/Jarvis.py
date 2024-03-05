@@ -56,7 +56,8 @@ if fsar:
     c = (special.psi(L) - np.log(L))
     cons = 1e-8
     data_folder = "/ste/usr/amao_jo/estudiantes/dayana/SAR_image_processing/data/fsar/"
-    suffix = "fsar"
+    suffix = "fsar_dinsar"
+    psuff = "*dinsar*"
 else:
     # Extract relevant parameters
     L = int(global_parameters['global_parameters']['L'])
@@ -66,9 +67,10 @@ else:
     cons = 1e-2
     data_folder = "/ste/usr/amao_jo/estudiantes/dayana/SAR_image_processing/data/training/"
     suffix = "tsx"
+    psuff = "*"
 
-patternA = f"{procid}_sublookA_*"
-patternB = f"{procid}_sublookB_*"
+patternA = f"{procid}_sublookA_{psuff}"
+patternB = f"{procid}_sublookB_{psuff}"
 
 model_id = f"WilsonVer1_Net_{select}_{function}_{batch_size}_{epochs}_{learning_rate}_{procid}_{suffix}"
 

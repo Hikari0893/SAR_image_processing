@@ -91,8 +91,8 @@ class NPYDataLoader:
             self.dataset_A = NPYDataset_Mem(list_A + list_B)
             self.dataset_B = NPYDataset_Mem(list_B + list_A)
 
-        training_ratio   = 0.75
-        validation_ratio = 0.25
+        training_ratio   = 0.7
+        validation_ratio = 0.3
 
         dataset_size    = len(self.dataset_A)
         training_size   = int(training_ratio * dataset_size)
