@@ -12,8 +12,7 @@ from cnn_despeckling.Dataloader_class import NPYDataLoader
 from cnn_despeckling.Loss_function import *
 from cnn_despeckling.Activation_functions import *
 
-os.environ[
-    'TF_CPP_MIN_LOG_LEVEL'] = '1'  # KEEP THIS BEFOR TF IMPORT and see tf.get_looger below, To disable informations, else '0' = DEBUG, '1' = INFO, '2' = WARNING, '3' = ERROR
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '1'  # KEEP THIS BEFOR TF IMPORT and see tf.get_looger below, To disable informations, else '0' = DEBUG, '1' = INFO, '2' = WARNING, '3' = ERROR
 os.environ['CUDA_DEVICE_ORDER'] = 'PCI_BUS_ID'
 os.environ['CUDA_VISIBLE_DEVICES'] = '1'  # '1,3,4,5,6,7' for 12, '0','1','2','3' on 21
 
@@ -55,9 +54,9 @@ if fsar:
     m = -8.0590475
     c = special.psi(L) - np.log(L)
     cons = 1e-8
-    data_folder = "/ste/usr/amao_jo/estudiantes/dayana/SAR_image_processing/data/fsar/"
-    suffix = "fsar_dinsar"
-    psuff = "*dinsar*"
+    data_folder = "/ste/usr/amao_jo/estudiantes/dayana/SAR_image_processing/data/fsar_gabon/"
+    suffix = "fsar_gabon"
+    psuff = "*gabonx*"
 else:
     # Extract relevant parameters
     L = int(global_parameters['global_parameters']['L'])
@@ -265,8 +264,8 @@ class Autoencoder_Wilson_Ver1 (pl.LightningModule,NPYDataLoader):
         return (torch.log(batch + self.cons) - 2*self.m)/(2*(self.M - self.m))
 
     # Not used given the architecture...
-    def denormalize(self,normalized_data, Max, min):
-        log_data = normalized_data * (Max - min) + min
+    def denormalize(self,normalized_data, MM, mm):
+        log_data = normalized_data * (MM - mm) + mm
         original_data = torch.exp(log_data) - self.cons
         return original_data
 

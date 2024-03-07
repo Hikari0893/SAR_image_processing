@@ -8,7 +8,7 @@ from cnn_despeckling.utils import (plot_residues,
                                    threshold_and_clip,
                                    mem_process_patches_with_model,
                                    create_patches_n, assemble_patches,
-                                   T_EF, preprocess_slc)
+                                   T_EF)
 
 from matplotlib.patches import Rectangle
 import matplotlib.pyplot as plt
@@ -66,8 +66,8 @@ id = "neustrelitz"
 dir = "../cnn_despeckling/model_checkpoints/"
 #models = ['WilsonVer1_Net_mse_leaky_relu_10_30_0.001_rgSL_sa1.ckpt']
 
-models = ['WilsonVer1_Net_mse_leaky_relu_10_30_0.001_az_tsx.ckpt',
-          'WilsonVer1_Net_mse_leaky_relu_10_30_0.001_rg_tsx.ckpt']
+models = ['WilsonVer1_Net_mse_leaky_relu_10_30_0.001_rg_tsx-v1.ckpt']
+          #'WilsonVer1_Net_mse_leaky_relu_10_30_0.001_rg_tsx-v1.ckpt']
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 

@@ -8,8 +8,8 @@ with open(config_file, 'r') as json_file:
     global_parameters = json.load(json_file)
 
 # Extract relevant parameters
-Max = global_parameters['global_parameters']['M']
-min = global_parameters['global_parameters']['m']
+MM = global_parameters['global_parameters']['M']
+mm = global_parameters['global_parameters']['m']
 # Extract relevant parameters
 L = int(global_parameters['global_parameters']['L'])
 from scipy import special
@@ -73,7 +73,7 @@ class Loss_funct(nn.Module):
         # Compute the negative log-likelihood
         neg_log_likelihood = -(Y_reference - X_hat + torch.exp(Y_reference - X_hat) + torch.exp(torch.exp(Y_reference - X_hat)))
         
-        # Sum up the negative log-likelihood for all data points (assuming they are independent)
+        # Sum up the negative log-likelihood for all data points (assummg they are independent)
         total_neg_log_likelihood = torch.mean(neg_log_likelihood)
         
         # Return the negative log-likelihood as the loss
@@ -102,7 +102,7 @@ class Loss_funct(nn.Module):
         if X_hat.shape != Y_reference.shape:
             raise ValueError("X_hat and Y_reference must be of the same shape")
 
-        denorm = (Y_reference - X_hat) * (Max - min) + min
+        denorm = (Y_reference - X_hat) * (MM - mm) + mm
         loss = torch.sum(X_hat - Y_reference + torch.exp(denorm))
 
         # import matplotlib.pyplot as plt
@@ -160,8 +160,8 @@ class Loss_funct(nn.Module):
 
     def JD_div(self, X_hat, Y_reference):
         
-        log_data_X = X_hat * (Max- min) + min
-        log_data_Y = Y_reference * (Max- min) + min
+        log_data_X = X_hat * (MM - mm) + mm
+        log_data_Y = Y_reference * (MM - mm) + mm
         
         p = F.softmax(log_data_X, dim = 1 )
         q = F.softmax (log_data_Y, dim = 1)

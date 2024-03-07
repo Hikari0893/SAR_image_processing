@@ -49,7 +49,7 @@ def analyse_spectra(arr):
         shift = shift_az_2/p.shape[0]
     p = np.roll(p,int(shift*p.shape[0]),axis=0)
     # Choose a threshold (for example, 10% of the maximum magnitude)
-    threshold = 0.07 * np.max(np.abs(gaussian_filter(p, sigma=3)))
+    threshold = 0.07 * np.max(np.abs(gaussian_filter(p, sigma=0.2*p.shape[0])))
 
     # Find start frequency
     start_freq = None
@@ -93,7 +93,25 @@ def normalize(batch, tsx=True):
         cons = 1e-8
     return (np.log(batch + cons) - 2 * m) / (2 * (M - m))
 
-def split_sublooks(arr, axis=0, alpha=0.6, debug = False):
+def denormalize(batch, tsx=True):
+    if tsx:
+        # TSX Params
+        L = 1
+        M = 10.089038980848645
+        m = -1.429329123112601
+        c = (special.psi(L) - np.log(L))
+        cons = 1e-2
+    else:
+        # FSAR params
+        L = 1
+        M = 1.3072924
+        m = -8.0590475
+        c = (special.psi(L) - np.log(L)) * 1
+        cons = 1e-8
+    # return np.exp(2 * np.clip(np.squeeze(batch), 0, 1) * (M - m) + 2*m - c) + cons
+    return np.exp(2 * np.squeeze(batch) * (M - m) + 2*m - c) + cons
+
+def split_sublooks(arr, axis=0, alpha=0.6, debug = False, crop = None):
     sub_alpha = alpha
     # Transposing if processing azimuth sublooks...
     if axis == 0:
@@ -172,6 +190,11 @@ def split_sublooks(arr, axis=0, alpha=0.6, debug = False):
     spatial_sectA = ifft(sublook_shift(a_padded, shift), axis=1)
     spatial_sectB = ifft(sublook_shift(b_padded, shift), axis=1)
 
+    if crop is not None:
+        tokeep = int(spatial_sectA.shape[1] * (crop / 100))
+        spatial_sectA = spatial_sectA[:, tokeep:-tokeep]
+        spatial_sectB = spatial_sectB[:, tokeep:-tokeep]
+
     if debug:
         plt.figure()
         plt.plot(calculate_1D_spectrum_joint(fft_img))
@@ -245,24 +268,6 @@ def plot_sublooks(pathA, pathB, complex_image):
     plt.imshow(np.abs(complex_image), vmax=vmax, cmap="gray")
     plt.show()
     return
-
-def denormalize(batch, tsx=True):
-    if tsx:
-        # TSX Params
-        L = 1
-        M = 10.089038980848645
-        m = -1.429329123112601
-        c = (special.psi(L) - np.log(L))
-        cons = 1e-2
-    else:
-        # FSAR params
-        L = 1
-        M = 1.3072924
-        m = -8.0590475
-        c = (special.psi(L) - np.log(L)) * 0.5
-        cons = 1e-8
-    return np.exp(2 * np.squeeze(batch) * (M - m) + 2*m - c) + cons
-
 
 def process_patches_with_model(patch_folder, model, device, desc='patches SLA', patch_index=None):
     processed_patches = []
