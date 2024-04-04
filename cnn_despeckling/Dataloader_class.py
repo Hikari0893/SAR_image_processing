@@ -86,8 +86,8 @@ class NPYDataLoader:
     def __init__(self, batch_size, num_workers=8, folder_A =None, folder_B = None, only_test=only_test,
                  data_folder = None, patternA = None, patternB = None):
         if data_folder is not None:
-            list_A = list_processed_patches(sorted(glob.glob(data_folder + patternA)), patch_size=256)
-            list_B = list_processed_patches(sorted(glob.glob(data_folder + patternB)), patch_size=256)
+            list_A = list_processed_patches(sorted(glob.glob(data_folder + patternA)), patch_size=64)
+            list_B = list_processed_patches(sorted(glob.glob(data_folder + patternB)), patch_size=64)
             self.dataset_A = NPYDataset_Mem(list_A + list_B)
             self.dataset_B = NPYDataset_Mem(list_B + list_A)
 

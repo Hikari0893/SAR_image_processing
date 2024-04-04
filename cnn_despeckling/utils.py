@@ -108,8 +108,8 @@ def denormalize(batch, tsx=True):
         m = -8.0590475
         c = (special.psi(L) - np.log(L)) * 1
         cons = 1e-8
-    # return np.exp(2 * np.clip(np.squeeze(batch), 0, 1) * (M - m) + 2*m - c) + cons
-    return np.exp(2 * np.squeeze(batch) * (M - m) + 2*m - c) + cons
+    return np.exp(2 * np.clip(np.squeeze(batch), 0, 1) * (M - m) + 2*m - c) + cons
+    # return np.exp(2 * np.squeeze(batch) * (M - m) + 2*m - c) + cons
 
 def split_sublooks(arr, axis=0, alpha=0.6, debug = False, crop = None):
     sub_alpha = alpha

@@ -54,9 +54,9 @@ if fsar:
     m = -8.0590475
     c = special.psi(L) - np.log(L)
     cons = 1e-8
-    data_folder = "/ste/usr/amao_jo/estudiantes/dayana/SAR_image_processing/data/fsar_gabon/"
-    suffix = "fsar_gabon"
-    psuff = "*gabonx*"
+    data_folder = "/ste/usr/amao_jo/estudiantes/dayana/SAR_image_processing/data/fsar_afrisar/"
+    suffix = "fsar_afrisar_ps64"
+    psuff = "*afrisr*"
 else:
     # Extract relevant parameters
     L = int(global_parameters['global_parameters']['L'])
@@ -112,7 +112,7 @@ class my_Unet(nn.Module):
         
         self.enc_conv1 = nn.Conv2d(32,  64, 3, stride=1, padding=1) # (Batch_size, 64, 256,256)
         self.enc_bn1 = nn.BatchNorm2d(64)
-        self.enc_pool1 = nn.AvgPool2d(kernel_size=2, stride=2, padding=0) # (Batch_size, 64, 128,128)
+        self.enc_pool1 = nn.AvgPool2d(kernel_size=2, stride=2, padding=0) # (Batch_size, 64, 128, 128)
         
         self.enc_conv2 = nn.Conv2d(64,  128, 3, stride=1, padding=1) # (Batch_size, 128, 128,128)
         self.enc_bn2 = nn.BatchNorm2d(128)
@@ -134,14 +134,14 @@ class my_Unet(nn.Module):
         self.enc_bn6 = nn.BatchNorm2d(512)
         self.enc_pool6= nn.AvgPool2d(kernel_size=2, stride=2, padding=0) # (Batch_size, 512, 4,4)
         
-        flatten_zise = 8192 #(512*4*4)
+        flatten_size = 8192 #(512 * 4* 4)
         
-        self.fc1_encoder = nn.Linear(flatten_zise, out_features=flatten_zise//2)
-        self.fc2_encoder = nn.Linear(flatten_zise//2, out_features=flatten_zise//4)
+        self.fc1_encoder = nn.Linear(flatten_size, out_features=flatten_size//2)
+        self.fc2_encoder = nn.Linear(flatten_size//2, out_features=flatten_size//4)
         
         # Decoder Layers
-        self.fc1_decoder = nn.Linear(flatten_zise//4, out_features=flatten_zise//2)
-        self.fc2_decoder = nn.Linear(flatten_zise//2, out_features=flatten_zise)
+        self.fc1_decoder = nn.Linear(flatten_size//4, out_features=flatten_size//2)
+        self.fc2_decoder = nn.Linear(flatten_size//2, out_features=flatten_size)
         
         self.dec_conv0 = nn.ConvTranspose2d(512, 256, 3, stride=2, padding=1, output_padding = 1) # (Batch_size, 256, 8, 8)
         self.dec_bn0   =  nn.BatchNorm2d(256)
@@ -226,9 +226,144 @@ class my_Unet(nn.Module):
         # ... continue forward pass through additional decoder layers
                 
         return input - N
-    
-    
-    
+
+
+class my_Unet_64(nn.Module):
+    def __init__(self, width=64, height=64):
+        super(my_Unet_64, self).__init__()
+        self.activation_funct = Activation_funct() # Assume ReLU as the default activation function
+
+        # Encoder Layers
+        # [Batch_size, Channel, H, W]
+        # (Batch_size, 1, 64, 64)
+        self.enc_conv0 = nn.Conv2d(1, 32, 3, stride=1, padding=1)  # (Batch_size, 32, 64, 64)
+
+        self.enc_conv1 = nn.Conv2d(32, 64, 3, stride=1, padding=1)  # (Batch_size, 64, 64, 64)
+        self.enc_bn1 = nn.BatchNorm2d(64)
+        self.enc_pool1 = nn.AvgPool2d(kernel_size=2, stride=2, padding=0)  # (Batch_size, 64, 32, 32)
+
+        self.enc_conv2 = nn.Conv2d(64, 128, 3, stride=1, padding=1)  # (Batch_size, 128, 32, 32)
+        self.enc_bn2 = nn.BatchNorm2d(128)
+        self.enc_pool2 = nn.AvgPool2d(kernel_size=2, stride=2, padding=0)  # (Batch_size, 128, 16, 16)
+
+        self.enc_conv3 = nn.Conv2d(128, 128, 3, stride=1, padding=1)  # (Batch_size, 128, 16, 16)
+        self.enc_bn3 = nn.BatchNorm2d(128)
+        self.enc_pool3 = nn.AvgPool2d(kernel_size=2, stride=2, padding=0)  # (Batch_size, 128, 8, 8)
+
+        self.enc_conv4 = nn.Conv2d(128, 256, 3, stride=1, padding=1)  # (Batch_size, 256, 8, 8)
+        self.enc_bn4 = nn.BatchNorm2d(256)
+        self.enc_pool4 = nn.AvgPool2d(kernel_size=2, stride=2, padding=0)  # Batch_size, 256, 4, 4)
+
+        self.enc_conv5 = nn.Conv2d(256, 256, 3, stride=1, padding=1)  # (Batch_size, 256, 4, 4)
+        self.enc_bn5 = nn.BatchNorm2d(256)
+        self.enc_pool5 = nn.AvgPool2d(kernel_size=2, stride=2, padding=0)  # (Batch_size, 256, 2, 2)
+
+        self.enc_conv6 = nn.Conv2d(256, 512, 3, stride=1, padding=1)  # (Batch_size, 512, 2, 2)
+        self.enc_bn6 = nn.BatchNorm2d(512)
+        self.enc_pool6 = nn.AvgPool2d(kernel_size=2, stride=2, padding=0)  # (Batch_size, 512, 1, 1)
+
+        flatten_size = 512 #(512 * 1 * 1)
+
+        self.fc1_encoder = nn.Linear(flatten_size, out_features=flatten_size // 2)
+        self.fc2_encoder = nn.Linear(flatten_size // 2, out_features=flatten_size // 4)
+
+        # Decoder Layers
+        self.fc1_decoder = nn.Linear(flatten_size // 4, out_features=flatten_size // 2)
+        self.fc2_decoder = nn.Linear(flatten_size // 2, out_features=flatten_size)
+
+        self.dec_conv0 = nn.ConvTranspose2d(512, 256, 3, stride=2, padding=1,
+                                            output_padding=1)  # (Batch_size, 256, 2, 2)
+        self.dec_bn0 = nn.BatchNorm2d(256)
+
+        self.dec_conv1 = nn.ConvTranspose2d(512, 256, 3, stride=2, padding=1,
+                                            output_padding=1)  # (Batch_size, 512, 4, 4)
+        self.dec_bn1 = nn.BatchNorm2d(256)
+
+        self.dec_conv2 = nn.ConvTranspose2d(512, 128, 3, stride=2, padding=1,
+                                            output_padding=1)  # (Batch_size, 128, 8, 8)
+        self.dec_bn2 = nn.BatchNorm2d(128)
+
+        self.dec_conv3 = nn.ConvTranspose2d(256, 128, 3, stride=2, padding=1,
+                                            output_padding=1)  # (Batch_size, 128, 16, 16)
+        self.dec_bn3 = nn.BatchNorm2d(128)
+
+        self.dec_conv4 = nn.ConvTranspose2d(256, 64, 3, stride=1, padding=1,
+                                            output_padding=0) # (Batch_size, 64, 16, 16)
+
+        self.dec_ups  = nn.Upsample(scale_factor=2, mode= 'nearest') # (Batch_size, 64, 32, 32)
+
+        self.dec_conv5  = nn.UpsamplingBilinear2d(scale_factor=2) # (Batch_size, 128, 64, 64)
+
+
+        self.dec_output = nn.Conv2d(160, 1, 3, padding=1)  # (Batch_size, 1, 64, 64)
+
+    def forward(self, input):
+        # Encoder
+        # (32, 1, 256, 256)
+
+        encoder_0 = self.activation_funct(self.enc_conv0(input), function)  # (Batch_size, 32, 256, 256)
+        skip = [encoder_0]
+
+        encoder_1 = self.activation_funct(self.enc_pool1(self.enc_bn1(self.enc_conv1(encoder_0))),
+                                          function)  # (Batch_size, 64, 128, 128)
+        skip.append(encoder_1)
+
+        encoder_2 = self.activation_funct(self.enc_pool2(self.enc_bn2(self.enc_conv2(encoder_1))),
+                                          function)  # (Batch_size, 128, 64, 64)
+        skip.append(encoder_2)
+
+        encoder_3 = self.activation_funct(self.enc_pool3(self.enc_bn3(self.enc_conv3(encoder_2))),
+                                          function)  # (Batch_size, 128, 32, 32)
+        skip.append(encoder_3)
+
+        encoder_4 = self.activation_funct(self.enc_pool4(self.enc_bn4(self.enc_conv4(encoder_3))),
+                                          function)  # (Batch_size, 256, 16, 16)
+        skip.append(encoder_4)
+
+        encoder_5 = self.activation_funct(self.enc_pool5(self.enc_bn5(self.enc_conv5(encoder_4))),
+                                          function)  # (Batch_size, 256, 8, 8)
+        skip.append(encoder_5)
+
+        encoder_6 = self.activation_funct(self.enc_pool6(self.enc_bn6(self.enc_conv6(encoder_5))),
+                                          function)  # (Batch_size, 512, 4, 4)
+
+        encoder_6 = encoder_6.view(encoder_6.size(0), -1)
+        fc1_ecoder = self.activation_funct(self.fc1_encoder(encoder_6), function)
+        fc2_encoder = self.activation_funct(self.fc2_encoder(fc1_ecoder), function)
+
+        # ... continue forward pass through additional encoder layers
+
+        # Decoder
+        # Input  (Batch_size, 512, 1, 1)
+        fc1_decoder = self.activation_funct(self.fc1_decoder(fc2_encoder), function)
+        fc2_decoder = self.activation_funct(self.fc2_decoder(fc1_decoder), function)
+        fc_2_dec = fc2_decoder.view(-1, 512, 1, 1)
+
+        decoder_0 = self.activation_funct(self.dec_bn0(self.dec_conv0(fc_2_dec)), function)
+
+        decoder_1 = torch.cat([decoder_0, skip.pop()], dim=1)  # Skip connection (512,8,8)
+        decoder_1 = self.activation_funct(self.dec_bn1(self.dec_conv1(decoder_1)), function)  # (256,16,16)
+
+        decoder_2 = torch.cat([decoder_1, skip.pop()], dim=1)  # Skip connection (512,16,16)
+        decoder_2 = self.activation_funct(self.dec_bn2(self.dec_conv2(decoder_2)), function)  # (128,32,32)
+
+        decoder_3 = torch.cat([decoder_2, skip.pop()], dim=1)  # Skip connection (256,32,32)
+        decoder_3 = self.activation_funct(self.dec_bn3(self.dec_conv3(decoder_3)), function)  # (128,64,64)
+
+        decoder_4 = torch.cat([decoder_3, skip.pop()], dim=1)  # Skip connection (256,64,64)
+        decoder_4 = self.activation_funct(self.dec_ups(self.dec_conv4(decoder_4)), function)  # (64,128,128)
+
+        decoder_5 = torch.cat([decoder_4, skip.pop()], dim=1)  # Skip connection (128,128,128)
+        decoder_5 = self.activation_funct(self.dec_conv5(decoder_5), function)  # (128,256,256)
+
+        decoder_6 = torch.cat([decoder_5, skip.pop()], dim=1)  # Skip connection (160, 256,256)
+
+        N = self.dec_output(decoder_6)  # (1,256,256)
+
+        # ... continue forward pass through additional decoder layers
+
+        return input - N
+
 class Autoencoder_Wilson_Ver1 (pl.LightningModule,NPYDataLoader):
     def __init__(self, width = 256, height = 256, training=False):
         pl.LightningModule.__init__(self)
@@ -240,13 +375,13 @@ class Autoencoder_Wilson_Ver1 (pl.LightningModule,NPYDataLoader):
         self.lr = learning_rate
         self.loss_f = Loss_funct()
         
-        self.Net = my_Unet()
+        self.Net = my_Unet_64()
         # No additional layers needed here, as there is no processing, for now
 
     def configure_optimizers(self):
         optimizer = optim.Adam(self.parameters(), lr=self.lr)
         scheduler = {
-            'scheduler': lr_scheduler.MultiStepLR(optimizer, milestones=[5, 20], gamma=0.1),
+            'scheduler': lr_scheduler.MultiStepLR(optimizer, milestones=[5, 25], gamma=0.1),
             'interval': 'epoch',  # Adjust the learning rate at the end of each epoch
         }
         return [optimizer], [scheduler]
