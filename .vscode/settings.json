@@ -1,0 +1,8 @@
+{
+    "python.analysis.typeCheckingMode": "basic",
+    "git.ignoreLimitWarning": true,
+    "python.analysis.extraPaths": [
+        "./Preprocessing__"
+    ],
+    "cmake.configureOnOpen": false
+}

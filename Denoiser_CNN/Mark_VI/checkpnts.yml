@@ -1,0 +1,26 @@
+ELU: '/home/tonix/Documents/Dayana/tb_logs/elu_66_20/version_0/checkpoints/epoch=19-step=1200.ckpt'
+GELU: '/home/tonix/Documents/Dayana/tb_logs/gelu_66_20/version_0/checkpoints/epoch=19-step=1200.ckpt'
+SIGMOID: '/home/tonix/Documents/Dayana/tb_logs/sigmoid_66_20/version_0/checkpoints/epoch=19-step=1200.ckpt'
+LEAKY_RELU: '/home/tonix/Documents/Dayana/tb_logs/leaky_relu_66_20/version_0/checkpoints/epoch=19-step=1200.ckpt'
+TAN_HYPR: '/home/tonix/Documents/Dayana/tb_logs/tanhyper_66_20/version_0/checkpoints/epoch=19-step=1200.ckpt'
+RELU: '/home/tonix/Documents/Dayana/tb_logs/relu_mse_106/version_15/checkpoints/epoch=19-step=1200.ckpt'
+RELU: '/home/tonix/Documents/Dayana/tb_logs/relu_mse_106/version_9/checkpoints/epoch=19-step=1200.ckpt'
+
+XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX:
+LEAKY: /home/tonix/Documents/Dayana/tb_logs/X_leaky_relu_66_20/version_0/checkpoints/epoch=19-step=1200.ckpt
+TANH: /home/tonix/Documents/Dayana/tb_logs/X_tanhyper_66_20/version_0/checkpoints/epoch=19-step=1200.ckpt
+SIGMOID: /home/tonix/Documents/Dayana/tb_logs/X_sigmoid_66_20/version_0/checkpoints/epoch=19-step=1200.ckpt
+RELU: /home/tonix/Documents/Dayana/tb_logs/X_relu_66_20/version_0/checkpoints/epoch=19-step=1200.ckpt
+      /home/tonix/Documents/Dayana/tb_logs/X_relu_75_20/version_0/checkpoints/epoch=19-step=1080.
+      /home/tonix/Documents/Dayana/tb_logs/X_relu_75_20/version_2/checkpoints/epoch=19-step=1080.ckpt
+      /home/tonix/Documents/Dayana/tb_logs/X_relu_100_20/version_1/checkpoints/epoch=19-step=820.ckpt
+      /home/tonix/Documents/Dayana/tb_logs/X_relu_100_20/version_2/checkpoints/epoch=19-step=820.ckpt
+      /home/tonix/Documents/Dayana/tb_logs/X_relu_32_20/version_0/checkpoints/epoch=19-step=2520.ckpt
+      /home/tonix/Documents/Dayana/tb_logs/X_relu_80_20/version_0/checkpoints/epoch=19-step=1020.ckpt
+      /home/tonix/Documents/Dayana/Denoiser_CNN/Mark_VI/tb_logs/X_relu_80_20/version_18/checkpoints/epoch=9-step=39190.ckpt
+
+GELU: /home/tonix/Documents/Dayana/tb_logs/X_gelu_66_20/version_0/checkpoints/epoch=19-step=1200.ckpt
+ELU: /home/tonix/Documents/Dayana/tb_logs/X_elu_66_20/version_0/checkpoints/epoch=19-step=1200.ckpt
+HARD_TANH: /home/tonix/Documents/Dayana/tb_logs/X_hard_tanh_66_20/version_0/checkpoints/epoch=19-step=1200.ckpt
+          /home/tonix/Documents/Dayana/tb_logs/X_hard_tanh_66_20/version_1/checkpoints/epoch=19-step=27360.ckpt
+          /home/tonix/Documents/Dayana/tb_logs/X_hardtnh_75_20/version_1/checkpoints/epoch=19-step=1080.ckpt
