@@ -1,0 +1,6 @@
+FL: 02, PS: 03 slc_16afrisr0203_Lvv_tL02.rat",
+FL: 03, PS: 04 slc_16afrisr0304_Lvv_tL02.rat",
+FL: 04, PS: 02 slc_16afrisr0402_Lvv_tL02.rat",
+FL: 06, PS: 02 slc_16afrisr0602_Lvv_tL02.rat",
+FL: 07, PS: 02 slc_16afrisr0702_Lvv_tL02.rat",
+FL: 09, PS: 05 slc_16afrisr0905_Lvv_tL02.rat"
